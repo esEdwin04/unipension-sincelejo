@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#5fa8d3"/><stop offset="1" stop-color="#1b4965"/>
+  </linearGradient></defs>
+  <rect width="400" height="260" fill="url(#g)"/>
+  <g fill="#ffffff" opacity="0.9">
+    <rect x="130" y="110" width="140" height="90" rx="4"/>
+    <polygon points="120,115 200,60 280,115"/>
+    <rect x="185" y="150" width="30" height="50" fill="#1b4965"/>
+    <rect x="145" y="125" width="25" height="20" fill="#5fa8d3"/>
+    <rect x="230" y="125" width="25" height="20" fill="#5fa8d3"/>
+  </g>
+  <text x="200" y="235" text-anchor="middle" fill="#ffffff" font-family="Arial" font-size="14" opacity="0.85">Fotografía de la pensión</text>
+</svg>

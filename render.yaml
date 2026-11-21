@@ -1,0 +1,16 @@
+# =============================================================
+# Despliegue en Render.com (plan gratuito) — Infraestructura como código
+# Al conectar el repositorio, Render lee este archivo y configura todo.
+# =============================================================
+services:
+  - type: web
+    name: unipension-sincelejo
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: SESSION_SECRET
+        generateValue: true      # Render genera un secreto aleatorio seguro
+      - key: NODE_VERSION
+        value: "20"

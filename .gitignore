@@ -1,0 +1,16 @@
+# Dependencias
+node_modules/
+
+# Base de datos local (cada desarrollador genera la suya con datos semilla)
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+
+# Variables de entorno (credenciales de pasarela, correo, etc.)
+.env
+
+# Sistema operativo / editor
+.DS_Store
+Thumbs.db
+.vscode/
+client/node_modules/

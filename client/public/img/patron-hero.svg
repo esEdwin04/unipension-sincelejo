@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMax slice">
+  <!-- Silueta de barrio sincelejano al atardecer: patrón decorativo del hero -->
+  <defs>
+    <linearGradient id="cielo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b3327" stop-opacity="0"/>
+      <stop offset="1" stop-color="#1c2219" stop-opacity=".85"/>
+    </linearGradient>
+  </defs>
+  <rect width="1440" height="900" fill="url(#cielo)"/>
+  <g fill="#1a2017" opacity=".9">
+    <path d="M0 760 L0 900 L1440 900 L1440 760 Z"/>
+    <path d="M60 760 L60 640 L120 600 L180 640 L180 760 Z"/>
+    <rect x="210" y="660" width="130" height="100"/>
+    <path d="M205 660 L275 615 L345 660 Z"/>
+    <rect x="380" y="620" width="90" height="140"/>
+    <rect x="500" y="680" width="150" height="80"/>
+    <path d="M495 680 L575 630 L655 680 Z"/>
+    <rect x="690" y="640" width="110" height="120"/>
+    <path d="M685 640 L745 596 L805 640 Z"/>
+    <rect x="840" y="700" width="140" height="60"/>
+    <rect x="1010" y="610" width="100" height="150"/>
+    <path d="M1005 610 L1060 566 L1115 610 Z"/>
+    <rect x="1150" y="670" width="120" height="90"/>
+    <path d="M1145 670 L1210 625 L1275 670 Z"/>
+    <path d="M1310 760 L1310 650 L1370 610 L1430 650 L1430 760 Z"/>
+  </g>
+  <g fill="#e8d9b5" opacity=".8">
+    <rect x="240" y="690" width="16" height="22"/><rect x="290" y="690" width="16" height="22"/>
+    <rect x="405" y="650" width="14" height="20"/><rect x="440" y="650" width="14" height="20"/>
+    <rect x="540" y="700" width="15" height="22"/><rect x="600" y="700" width="15" height="22"/>
+    <rect x="715" y="668" width="14" height="20"/><rect x="760" y="668" width="14" height="20"/>
+    <rect x="1035" y="645" width="14" height="20"/><rect x="1070" y="645" width="14" height="20"/>
+    <rect x="1180" y="695" width="15" height="20"/><rect x="1230" y="695" width="15" height="20"/>
+  </g>
+  <g stroke="#2f3a2b" stroke-width="6" opacity=".8">
+    <line x1="470" y1="760" x2="470" y2="560"/><line x1="900" y1="760" x2="900" y2="580"/>
+  </g>
+  <g fill="#35422f" opacity=".9">
+    <ellipse cx="470" cy="545" rx="55" ry="40"/><ellipse cx="900" cy="565" rx="48" ry="36"/>
+  </g>
+</svg>

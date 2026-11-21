@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UniPensión Sincelejo — Catálogo de pensiones</title>
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+  <header id="nav"></header>
+  <main>
+    <section class="hero">
+      <h1>Encuentra tu pensión universitaria en Sincelejo</h1>
+      <p>Compara habitaciones verificadas por barrio, precio y cercanía a tu universidad. Reserva y paga en línea con total confianza.</p>
+    </section>
+
+    <!-- HU-04: Búsqueda y filtrado -->
+    <section class="panel">
+      <h2 class="titulo">Filtrar pensiones</h2>
+      <form id="form-filtros" class="filtros">
+        <div><label>Barrio</label><select id="f-barrio"><option value="">Todos</option></select></div>
+        <div><label>Precio mínimo</label><input type="number" id="f-min" placeholder="0" min="0" step="10000"></div>
+        <div><label>Precio máximo</label><input type="number" id="f-max" placeholder="600000" min="0" step="10000"></div>
+        <div><label>Tipo de habitación</label>
+          <select id="f-tipo"><option value="">Todas</option><option value="individual">Individual</option><option value="compartida">Compartida</option></select></div>
+        <div><label>Universidad</label><select id="f-uni"><option value="">Ninguna</option></select></div>
+        <div><label>Distancia máx. (km)</label><input type="number" id="f-dist" placeholder="Ej: 2" min="0" step="0.5"></div>
+        <div><button class="boton" type="submit">Buscar</button></div>
+        <div><button class="boton secundario" type="button" id="btn-limpiar">Limpiar filtros</button></div>
+      </form>
+    </section>
+
+    <div id="mensaje"></div>
+    <section class="grilla" id="catalogo"></section>
+  </main>
+  <script src="js/app.js"></script>
+  <script src="js/catalogo.js"></script>
+</body>
+</html>

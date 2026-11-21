@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis reservas — UniPensión Sincelejo</title>
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+  <header id="nav"></header>
+  <main>
+    <div id="mensaje"></div>
+
+    <!-- HU-07: pago simulado -->
+    <section class="panel" id="panel-pago" style="display:none">
+      <h2 class="titulo">Pagar reserva <span id="pg-id"></span></h2>
+      <div class="aviso info">Tienes <strong>30 minutos</strong> para completar el pago; de lo contrario, la habitación se libera automáticamente.</div>
+      <form id="form-pago" class="filtros" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+        <div><label>Medio de pago</label>
+          <select id="pg-medio"><option>PSE</option><option>Tarjeta</option><option>Nequi</option></select></div>
+        <div><label>Resultado (simulación de la pasarela)</label>
+          <select id="pg-sim"><option value="aprobado">Transacción aprobada</option><option value="rechazado">Transacción rechazada</option></select></div>
+        <div><button class="boton" type="submit">Pagar ahora</button></div>
+        <div><button class="boton secundario" type="button" id="pg-cancelar">Cancelar solicitud</button></div>
+      </form>
+      <div id="pg-mensaje"></div>
+    </section>
+
+    <!-- HU-11: historial con pestañas -->
+    <section class="panel">
+      <h2 class="titulo">Mis reservas</h2>
+      <div class="pestanas">
+        <button class="activa" data-f="vigentes">Vigentes</button>
+        <button data-f="historico">Histórico</button>
+        <button data-f="todas">Todas</button>
+      </div>
+      <div class="tabla-env"><table>
+        <thead><tr><th>#</th><th>Pensión</th><th>Ingreso</th><th>Valor</th><th>Estado</th><th>Comprobante</th><th>Acciones</th></tr></thead>
+        <tbody id="tabla-reservas"></tbody>
+      </table></div>
+    </section>
+
+    <section class="panel">
+      <h2 class="titulo">Notificaciones</h2>
+      <div id="lista-notif" class="suave"></div>
+    </section>
+  </main>
+  <script src="js/app.js"></script>
+  <script src="js/reservas.js"></script>
+</body>
+</html>

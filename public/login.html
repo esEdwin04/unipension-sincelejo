@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar sesión — UniPensión Sincelejo</title>
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+  <header id="nav"></header>
+  <main style="max-width:440px">
+    <section class="panel">
+      <h2 class="titulo">Iniciar sesión</h2>
+      <form id="form-login">
+        <label>Correo electrónico</label>
+        <input type="email" id="l-correo" required placeholder="tucorreo@ejemplo.com">
+        <label style="margin-top:10px">Contraseña</label>
+        <input type="password" id="l-clave" required>
+        <button class="boton" style="width:100%;margin-top:16px">Ingresar</button>
+      </form>
+      <div id="mensaje"></div>
+      <p class="suave" style="margin-top:14px">¿No tienes cuenta? <a href="registro.html">Regístrate aquí</a></p>
+      <div class="aviso info" style="margin-top:10px">
+        <strong>Usuarios de demostración:</strong><br>
+        estudiante@unipension.co / est123<br>
+        propietaria@unipension.co / prop123<br>
+        admin@unipension.co / admin123
+      </div>
+    </section>
+  </main>
+  <script src="js/app.js"></script>
+  <script>
+    pintarNav('login.html');
+    document.getElementById('form-login').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const { usuario } = await API.post('/auth/login', {
+          correo: document.getElementById('l-correo').value,
+          clave: document.getElementById('l-clave').value,
+        });
+        const destinos = { estudiante: 'index.html', propietario: 'propietario.html', administrador: 'admin.html' };
+        location.href = new URLSearchParams(location.search).get('volver') || destinos[usuario.rol];
+      } catch (err) { aviso('mensaje', 'error', err.message); }
+    });
+  </script>
+</body>
+</html>
