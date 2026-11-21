@@ -14,3 +14,16 @@ backend/*.db-wal
 Thumbs.db
 .vscode/
 client/node_modules/
+
+#Documentos del proyecto
+public/admin.html
+public/index.html
+public/login.html
+public/registro.html
+public/productos.html
+public/usuarios.html
+public/pension.html
+public/propietarios.html
+public/registro.html
+public/reservas.html
+

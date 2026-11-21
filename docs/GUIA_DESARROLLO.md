@@ -122,7 +122,7 @@ git push -u origin feature/HU-04-filtros-catalogo
 # 5. Otro integrante revisa el PR (Files changed → Review → Approve)
 #    El QA del sprint prueba la rama localmente:
 git fetch origin
-git checkout feature/HU-04-filtros-catalogo
+
 npm start   # probar los criterios de aceptación de la HU
 
 # 6. Con la aprobación, Merge pull request → Delete branch
