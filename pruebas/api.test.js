@@ -338,3 +338,24 @@ test('Favoritos: guardar, listar y quitar; solo el estudiante dueño los ve', as
   assert.equal((await est.del(`/favoritos/${a.id}`)).status, 200);
   assert.deepEqual((await est.get('/favoritos/ids')).datos, [b.id]);
 });
+
+test('Modo real (MODO_DEMO=false): sin cuentas demo y documento de identidad real', async () => {
+  const anterior = process.env.MODO_DEMO;
+  process.env.MODO_DEMO = 'false';
+  try {
+    const anon = cliente();
+    assert.deepEqual((await anon.get('/auth/modo')).datos, { demo: false });
+    assert.deepEqual((await anon.get('/auth/demo')).datos, []);
+    const base = { rol: 'propietario', nombre: 'Propietaria Real', clave: 'Segura123', confirmar: 'Segura123',
+      telefono: '3104445566', acepta_datos: true, relacion: 'Propietario' };
+    // Documento ficticio o vacío ya no sirve; la cédula real sí
+    let r = await anon.post('/auth/registro', { ...base, correo: `real${Date.now()}@correo.co`, documento: '12' });
+    assert.equal(r.status, 400);
+    assert.match(r.datos.campos.documento, /cédula/);
+    r = await anon.post('/auth/registro', { ...base, correo: `real${Date.now()}@correo.co`, documento: '1.102.345.678' });
+    assert.equal(r.status, 201);
+  } finally {
+    if (anterior === undefined) delete process.env.MODO_DEMO; else process.env.MODO_DEMO = anterior;
+  }
+  assert.deepEqual((await cliente().get('/auth/modo')).datos, { demo: true });
+});

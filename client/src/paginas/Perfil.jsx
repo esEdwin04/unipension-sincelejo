@@ -4,7 +4,7 @@
 // =============================================================
 import { useEffect, useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { API, fecha } from '../api.js';
+import { API, fecha, modoDemo, textoDocumento } from '../api.js';
 import { useSesion } from '../App.jsx';
 import Icono from '../componentes/Icono.jsx';
 import { Aviso, Avatar, Campo, Cargando, ItemMenu, PoliticaDatos, TituloPagina } from '../componentes/ui.jsx';
@@ -74,7 +74,9 @@ function EditarPerfil({ perfil, guardado }) {
   const [errores, setErrores] = useState({});
   const [ocupado, setOcupado] = useState(false);
   const [unis, setUnis] = useState([]);
-  useEffect(() => { API.get('/pensiones/universidades').then(setUnis).catch(() => {}); }, []);
+  const [demo, setDemo] = useState(true);
+  useEffect(() => { API.get('/pensiones/universidades').then(setUnis).catch(() => {}); modoDemo().then(setDemo); }, []);
+  const doc = textoDocumento(demo);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
   const cambios = JSON.stringify(f) !== JSON.stringify(perfil);
   const volver = () => { if (!cambios || window.confirm('¿Descartar los cambios que no guardaste?')) nav('/perfil'); };
@@ -134,8 +136,8 @@ function EditarPerfil({ perfil, guardado }) {
         {f.rol === 'propietario' && (
           <>
             <div className="titulo-form"><span><Icono nombre="edificio" tam={18} /></span><div><h2>Tu perfil como propietario</h2><p>Presentación pública y contacto autorizado.</p></div></div>
-            <Campo etiqueta="Documento de identidad ficticio · privado" error={errores.documento}>
-              <input value={f.documento || ''} onChange={set('documento')} placeholder="DEMO-001, nunca un documento real" />
+            <Campo etiqueta={doc.etiqueta} error={errores.documento}>
+              <input value={f.documento || ''} onChange={set('documento')} placeholder={doc.ayuda} autoComplete="off" />
             </Campo>
             <Campo etiqueta="Presentación pública"><textarea maxLength={700} value={f.bio || ''} onChange={set('bio')} /></Campo>
             <Campo etiqueta="Relación con la pensión">

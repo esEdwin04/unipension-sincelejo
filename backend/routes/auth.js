@@ -38,8 +38,7 @@ router.post('/registro', async (req, res) => {
   if ((rol === 'propietario' || telefono) && !celular)
     errores.telefono = 'Número celular colombiano: 10 dígitos que comiencen por 3.';
   if (rol === 'estudiante' && !institucion) errores.institucion = 'Selecciona tu institución.';
-  if (rol === 'propietario' && !v.documentoValido(documento))
-    errores.documento = 'No uses un documento real. Escribe un identificador ficticio DEMO-.';
+  if (rol === 'propietario' && !v.documentoValido(documento)) errores.documento = v.mensajeDocumento();
   if (!acepta_datos) errores.acepta_datos = 'Debe autorizar el tratamiento de datos personales (Ley 1581 de 2012).';
   if (Object.keys(errores).length)
     return res.status(400).json({ error: Object.values(errores)[0], campos: errores });
@@ -78,9 +77,12 @@ router.get('/yo', async (req, res) => {
   res.json({ usuario: { id: u.id, nombre: u.nombre, rol: u.rol, foto: u.foto, institucion: u.institucion, relacion: u.relacion } });
 });
 
+// GET /api/auth/modo → { demo } para que los formularios apliquen la misma regla de documento
+router.get('/modo', (_req, res) => res.json({ demo: v.modoDemo() }));
+
 // GET /api/auth/demo → cuentas de demostración para el acceso rápido (solo en modo demo)
 router.get('/demo', (_req, res) => {
-  if (!v.MODO_DEMO) return res.json([]);
+  if (!v.modoDemo()) return res.json([]);
   res.json([
     { nombre: 'Luis Mendoza', rol: 'estudiante', correo: 'estudiante@unipension.co', clave: 'est123' },
     { nombre: 'Laura Montes', rol: 'estudiante', correo: 'estudiante2@unipension.co', clave: 'est123' },
@@ -125,7 +127,7 @@ router.put('/perfil', requiereSesion, async (req, res) => {
   const whatsapp = b.whatsapp_habilitado !== undefined ? !!b.whatsapp_habilitado : actual.whatsapp_habilitado;
   if (whatsapp && !telefono) errores.telefono = 'Configura un número válido para habilitar WhatsApp.';
   if (actual.rol === 'propietario' && b.documento !== undefined && !v.documentoValido(b.documento))
-    errores.documento = 'Solo se aceptan documentos ficticios con prefijo DEMO-.';
+    errores.documento = v.mensajeDocumento();
   if (b.foto && (!/^data:image\/(jpeg|png|webp);base64,/.test(b.foto) || b.foto.length > 400000))
     errores.foto = 'La foto debe ser una imagen JPG, PNG o WebP comprimida.';
   if (Object.keys(errores).length) return res.status(400).json({ error: Object.values(errores)[0], campos: errores });

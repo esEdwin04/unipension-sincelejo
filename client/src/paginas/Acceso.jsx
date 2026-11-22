@@ -4,7 +4,7 @@
 // =============================================================
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { API } from '../api.js';
+import { API, documentoValido, modoDemo, textoDocumento } from '../api.js';
 import { useSesion } from '../App.jsx';
 import { Marca, Campo, Aviso, PoliticaDatos, VERSION_POLITICA } from '../componentes/ui.jsx';
 import Icono from '../componentes/Icono.jsx';
@@ -135,7 +135,12 @@ export function Registro() {
   const [errores, setErrores] = useState({});
   const [enviando, setEnviando] = useState(false);
   const [unis, setUnis] = useState([]);
-  useEffect(() => { API.get('/pensiones/universidades').then(setUnis).catch(() => {}); }, []);
+  const [demo, setDemo] = useState(true);
+  useEffect(() => {
+    API.get('/pensiones/universidades').then(setUnis).catch(() => {});
+    modoDemo().then(setDemo);
+  }, []);
+  const doc = textoDocumento(demo);
 
   async function enviar(e) {
     e.preventDefault();
@@ -152,8 +157,7 @@ export function Registro() {
     if (datos.clave !== datos.confirmar) err.confirmar = 'Las contraseñas no coinciden.';
     if ((rol === 'propietario' || datos.telefono) && !celularOk(datos.telefono))
       err.telefono = 'Número celular colombiano: 10 dígitos que comiencen por 3. Se guardará con +57.';
-    if (rol === 'propietario' && !datos.documento.startsWith('DEMO-'))
-      err.documento = 'No uses un documento real. Escribe un identificador ficticio DEMO-.';
+    if (rol === 'propietario' && !documentoValido(datos.documento, demo)) err.documento = doc.error;
     if (rol === 'estudiante' && !datos.institucion) err.institucion = 'Selecciona tu institución.';
     if (!datos.acepta_datos) err.politica = 'Acepta la política de tratamiento de datos personales para continuar.';
     setErrores(err);
@@ -219,8 +223,8 @@ export function Registro() {
           </Campo>
         ) : (
           <>
-            <Campo etiqueta="Documento ficticio privado *" error={errores.documento}>
-              <input name="documento" placeholder="DEMO-001 · no ingreses un documento real" />
+            <Campo etiqueta={doc.etiqueta} error={errores.documento}>
+              <input name="documento" placeholder={doc.ayuda} autoComplete="off" />
             </Campo>
             <Campo etiqueta="Relación con la pensión">
               <select name="relacion">

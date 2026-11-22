@@ -30,6 +30,20 @@ export const API = {
   del: (r) => pedir(r, { method: 'DELETE' }),
 };
 
+// Documento del propietario: misma regla que el servidor según el modo (GET /api/auth/modo)
+let modoDemoCache;
+export const modoDemo = () => (modoDemoCache ??= pedir('/auth/modo').then((r) => r.demo).catch(() => true));
+export function documentoValido(d, demo) {
+  if (demo) return String(d || '').startsWith('DEMO-');
+  const x = String(d || '').replace(/[.\s-]/g, '').toUpperCase();
+  return /^\d{6,10}$/.test(x) || /^(?=.*\d)[A-Z0-9]{5,15}$/.test(x);
+}
+export const textoDocumento = (demo) => (demo
+  ? { etiqueta: 'Documento ficticio privado *', ayuda: 'DEMO-001 · no ingreses un documento real',
+      error: 'No uses un documento real. Escribe un identificador ficticio DEMO-.' }
+  : { etiqueta: 'Cédula o documento de identidad (privado) *', ayuda: 'Número de cédula, CE o pasaporte',
+      error: 'Escribe tu número de cédula (6 a 10 dígitos) o de cédula de extranjería / pasaporte.' });
+
 export const cop = (v) => '$' + Number(v || 0).toLocaleString('es-CO');
 export const estrellas = (c) =>
   c ? '★'.repeat(Math.round(c)) + '☆'.repeat(5 - Math.round(c)) + ` ${String(c).replace('.', ',')}` : 'Sin calificaciones';
