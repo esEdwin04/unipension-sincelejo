@@ -2,6 +2,7 @@
 // Catálogo "¿Dónde quieres vivir?" (HU-04) — prototipo inicial:
 // buscador, panel de filtros, filtros activos removibles, ubicación del dispositivo,
 // vista Lista / Mapa, conteo, paginación de 12 y estado sin resultados.
+// F1 (HU-04 esc. 1): filtro por fecha de ingreso y meses de estadía.
 // =============================================================
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -11,8 +12,30 @@ import Icono, { IconoServicio } from '../componentes/Icono.jsx';
 import { Aviso, Campo, Cargando, Vacio, TituloPagina } from '../componentes/ui.jsx';
 
 const POR_PAGINA = 12;
-const VACIO = { q: '', universidad_id: '', precio_min: '', precio_max: '', tipo: '', servicios: [], orden: 'recientes', barrio: '' };
+const VACIO = { q: '', universidad_id: '', precio_min: '', precio_max: '', tipo: '', servicios: [], orden: 'recientes', barrio: '', fecha_ingreso: '', meses: '' };
 const ORDENES = { recientes: 'Más recientes', precio_asc: 'Menor precio', precio_desc: 'Mayor precio', calificacion: 'Mejor calificadas', cercania: 'Más cercanas' };
+
+// Cambiar a true cuando GET /api/pensiones filtre por periodo (actividad B6 de Jesús Villalba).
+// Mientras sea false, el catálogo avisa que la fecha todavía no reduce los resultados.
+const FECHA_EN_SERVIDOR = false;
+
+// Fecha local en formato AAAA-MM-DD. toISOString() usa UTC y en Colombia (UTC-5)
+// después de las 7 p. m. devolvería el día siguiente.
+export function hoyLocal(d = new Date()) {
+  const dos = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`;
+}
+const fechaCorta = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
+
+// Reglas de HU-04 esc. 1 (el servidor las vuelve a validar en B6)
+function errorPeriodo({ fecha_ingreso, meses }) {
+  const e = {};
+  if (fecha_ingreso && fecha_ingreso < hoyLocal()) e.fecha_ingreso = 'La fecha de ingreso no puede ser anterior a hoy.';
+  if (meses && !fecha_ingreso) e.fecha_ingreso = 'Elige la fecha de ingreso para buscar por periodo.';
+  if (fecha_ingreso && !meses) e.meses = 'Indica cuántos meses te vas a quedar.';
+  if (meses && !(Number.isInteger(+meses) && +meses >= 1 && +meses <= 12)) e.meses = 'Los meses deben ser un número entero entre 1 y 12.';
+  return e;
+}
 
 function distanciaKm(a, b) {
   const r = (x) => (x * Math.PI) / 180;
@@ -36,6 +59,7 @@ export default function Catalogo() {
   const [lista, setLista] = useState(null);
   const [error, setError] = useState('');
   const [errorRango, setErrorRango] = useState('');
+  const [errorFecha, setErrorFecha] = useState({});
   const [unis, setUnis] = useState([]);
   const [barrios, setBarrios] = useState([]);
   const [servicios, setServicios] = useState([]);
@@ -72,9 +96,10 @@ export default function Catalogo() {
     Object.entries(extra).forEach(([k, v]) => q.set(k, v));
     setSp(q);
   };
-  const limpiar = () => { setTexto(''); setBorrador(VACIO); setErrorRango(''); aplicar(VACIO); };
+  const limpiar = () => { setTexto(''); setBorrador(VACIO); setErrorRango(''); setErrorFecha({}); aplicar(VACIO); };
   const quitar = (k, valor) => {
     const n = { ...filtros, [k]: k === 'servicios' ? filtros.servicios.filter((s) => s !== valor) : VACIO[k] };
+    if (k === 'fecha_ingreso') n.meses = ''; // la fecha y los meses forman un solo periodo
     if (k === 'q') setTexto('');
     if (k === 'universidad_id' && n.orden === 'cercania') n.orden = 'recientes';
     setBorrador(n); aplicar(n);
@@ -92,7 +117,10 @@ export default function Catalogo() {
       setErrorRango('El rango de precios debe ser positivo y el mínimo no puede superar el máximo.');
       return;
     }
+    const ef = errorPeriodo(borrador);
     setErrorRango('');
+    setErrorFecha(ef);
+    if (Object.keys(ef).length) return;
     setPanel(false);
     aplicar({ ...borrador, q: texto });
   }
@@ -134,6 +162,8 @@ export default function Catalogo() {
     ['precio_min', filtros.precio_min, `Desde ${cop(filtros.precio_min)}`],
     ['precio_max', filtros.precio_max, `Hasta ${cop(filtros.precio_max)}`],
     ['tipo', filtros.tipo, filtros.tipo === 'individual' ? 'Habitación individual' : 'Habitación compartida'],
+    ['fecha_ingreso', filtros.fecha_ingreso,
+      filtros.fecha_ingreso && `Ingreso: ${fechaCorta(filtros.fecha_ingreso)}${filtros.meses ? ` · ${filtros.meses} ${+filtros.meses === 1 ? 'mes' : 'meses'}` : ''}`],
     ['orden', filtros.orden !== 'recientes' ? filtros.orden : '', ORDENES[filtros.orden]],
   ].filter(([, v]) => v);
   const hayFiltros = activos.length > 0 || filtros.servicios.length > 0;
@@ -221,6 +251,14 @@ export default function Catalogo() {
                 <option value="">Todas</option><option value="individual">Individual</option><option value="compartida">Compartida</option>
               </select>
             </Campo>
+            <Campo etiqueta="Fecha de ingreso" error={errorFecha.fecha_ingreso}>
+              <input type="date" min={hoyLocal()} value={borrador.fecha_ingreso}
+                     onChange={(e) => setBorrador({ ...borrador, fecha_ingreso: e.target.value })} />
+            </Campo>
+            <Campo etiqueta="Meses de estadía" error={errorFecha.meses}>
+              <input type="number" min="1" max="12" step="1" inputMode="numeric" value={borrador.meses} placeholder="6"
+                     onChange={(e) => setBorrador({ ...borrador, meses: e.target.value })} />
+            </Campo>
             <Campo etiqueta="Orden de resultados">
               <select value={borrador.orden} onChange={(e) => setBorrador({ ...borrador, orden: e.target.value })}>
                 {Object.entries(ORDENES).filter(([k]) => k !== 'cercania' || borrador.universidad_id)
@@ -253,6 +291,10 @@ export default function Catalogo() {
         {hayFiltros && <button onClick={limpiar}>Limpiar filtros</button>}
       </div>
       <Aviso tipo="error">{error}</Aviso>
+      {filtros.fecha_ingreso && !FECHA_EN_SERVIDOR && (
+        <Aviso tipo="alerta" role="status">El filtro por fecha de ingreso todavía no reduce los resultados: se muestran las pensiones con cupos hoy.
+          La consulta por periodo depende del servidor (actividad B6).</Aviso>
+      )}
 
       {!lista ? <Cargando texto="Buscando pensiones…" /> : resultados.length === 0 ? (
         <Vacio titulo="Sin resultados para los filtros seleccionados" texto="Prueba otra universidad, barrio o un rango de precio más amplio."
