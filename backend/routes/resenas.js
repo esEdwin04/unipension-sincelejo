@@ -32,8 +32,9 @@ router.post('/', requiereRol('estudiante'), (req, res) => {
 
 // POST /api/resenas/:id/reportar  (propietario reporta reseña ofensiva — esc. 4)
 router.post('/:id/reportar', requiereRol('propietario'), (req, res) => {
-  const r = db.prepare('SELECT * FROM resenas WHERE id = ?').get(+req.params.id);
-  if (!r) return res.status(404).json({ error: 'Reseña no encontrada' });
+  const r = db.prepare(`SELECT rs.* FROM resenas rs JOIN pensiones p ON p.id = rs.pension_id
+                        WHERE rs.id = ? AND p.propietario_id = ?`).get(+req.params.id, req.session.usuario.id);
+  if (!r) return res.status(404).json({ error: 'Reseña no encontrada en sus pensiones' }); // RNF-06
   db.prepare(`UPDATE resenas SET estado='Reportada' WHERE id=?`).run(r.id); // oculta preventivamente
   res.json({ mensaje: 'Reseña oculta de forma preventiva y enviada al administrador para moderación' });
 });
@@ -47,6 +48,7 @@ router.get('/reportadas', requiereRol('administrador'), (_req, res) => {
 
 router.patch('/:id/moderar', requiereRol('administrador'), (req, res) => {
   const { decision } = req.body; // 'publicar' | 'ocultar'
+  if (!['publicar', 'ocultar'].includes(decision)) return res.status(400).json({ error: 'Decisión no válida' });
   const nuevo = decision === 'publicar' ? 'Publicada' : 'Oculta';
   db.prepare(`UPDATE resenas SET estado=? WHERE id=?`).run(nuevo, +req.params.id);
   res.json({ mensaje: `Reseña ${nuevo.toLowerCase()}` });

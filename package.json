@@ -1,6 +1,6 @@
 {
   "name": "unipension-sincelejo",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Aplicación web para la oferta de pensiones universitarias en Sincelejo, Sucre",
   "main": "backend/server.js",
   "directories": {
@@ -10,7 +10,8 @@
     "start": "node backend/server.js",
     "dev": "node --watch backend/server.js",
     "dev:client": "npm --prefix client run dev",
-    "build": "npm --prefix client install && npm --prefix client run build"
+    "build": "npm --prefix client install && npm --prefix client run build",
+    "test": "node --test pruebas/api.test.js"
   },
   "keywords": [],
   "author": "Edwin Díaz, José Paternina, Jesús Villalba",

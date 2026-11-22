@@ -18,6 +18,10 @@ router.get('/indicadores', (_req, res) => {
     reservas_total:       db.prepare(`SELECT COUNT(*) n FROM reservas`).get().n,
     reservas_confirmadas: db.prepare(`SELECT COUNT(*) n FROM reservas WHERE estado='Confirmada'`).get().n,
     ingresos:             db.prepare(`SELECT COALESCE(SUM(valor),0) n FROM pagos WHERE estado='Aprobado'`).get().n,
+    pensiones_suspendidas:db.prepare(`SELECT COUNT(*) n FROM pensiones WHERE estado='Suspendida'`).get().n,
+    destacadas:           db.prepare(`SELECT COUNT(*) n FROM pensiones WHERE destacado=1`).get().n,
+    reportes_activos:     db.prepare(`SELECT COUNT(*) n FROM reportes_pensiones WHERE estado='Pendiente'`).get().n,
+    contactos:            db.prepare(`SELECT COUNT(*) n FROM contactos`).get().n,
   };
   // Ocupación y arriendo promedio por barrio (tarea del Administrador DB, Sprint 4)
   const porBarrio = db.prepare(`
@@ -87,6 +91,70 @@ router.get('/bitacora', (_req, res) => {
     FROM bitacora_verificaciones b
     JOIN pensiones p ON p.id=b.pension_id JOIN usuarios u ON u.id=b.admin_id
     ORDER BY b.creado_en DESC LIMIT 50`).all());
+});
+
+// GET /api/admin/reportes — reportes de información de las pensiones (activos primero)
+router.get('/reportes', (_req, res) => {
+  res.json(db.prepare(`SELECT r.*, p.nombre AS pension, p.barrio, p.estado AS estado_pension, u.nombre AS estudiante, u.correo
+    FROM reportes_pensiones r
+    JOIN pensiones p ON p.id = r.pension_id
+    JOIN usuarios u ON u.id = r.estudiante_id
+    ORDER BY CASE r.estado WHEN 'Pendiente' THEN 0 ELSE 1 END, r.creado_en DESC`).all());
+});
+
+// PATCH /api/admin/reportes/:id — resolver o descartar un reporte individual
+router.patch('/reportes/:id', (req, res) => {
+  const { estado, decision } = req.body;
+  if (!['Resuelto', 'Descartado'].includes(estado))
+    return res.status(400).json({ error: 'Estado de reporte no válido' });
+  const result = db.prepare(`UPDATE reportes_pensiones SET estado = ?, decision = ?, resuelto_en = datetime('now','localtime')
+    WHERE id = ? AND estado = 'Pendiente'`).run(estado, decision || null, +req.params.id);
+  if (!result.changes) return res.status(404).json({ error: 'Reporte pendiente no encontrado' });
+  res.json({ mensaje: `Reporte marcado como ${estado.toLowerCase()}` });
+});
+
+// ---------- MODERACIÓN DE PUBLICACIONES (prototipo: Aprobar, Rechazar, Ocultar, Restaurar, Destacar, Resolver) ----------
+// POST /api/admin/pensiones/:id/moderar { accion, motivo }
+const ACCIONES = {
+  aprobar:          { estado: 'Verificada', bitacora: 'Verificada',        motivo: false, resuelve: true },
+  rechazar:         { estado: 'Rechazada',  bitacora: 'Rechazada',         motivo: true,  resuelve: true },
+  ocultar:          { estado: 'Suspendida', bitacora: 'Suspendida',        motivo: true,  resuelve: false },
+  restaurar:        { estado: 'Verificada', bitacora: 'Restaurada',        motivo: true,  resuelve: true },
+  resolver:         { estado: null,         bitacora: 'Reportes resueltos', motivo: true,  resuelve: true },
+  destacar:         { estado: null,         bitacora: 'Destacada',         motivo: false, resuelve: false, destacado: 1 },
+  quitar_destacado: { estado: null,         bitacora: 'Sin destacar',      motivo: false, resuelve: false, destacado: 0 },
+};
+router.post('/pensiones/:id/moderar', (req, res) => {
+  const { accion } = req.body;
+  const motivo = String(req.body.motivo || '').trim();
+  const a = ACCIONES[accion];
+  if (!a) return res.status(400).json({ error: 'Acción de moderación no válida' });
+  if (a.motivo && !motivo) return res.status(400).json({ error: 'Explica la decisión para el historial de moderación.' });
+  const p = db.prepare('SELECT * FROM pensiones WHERE id = ?').get(+req.params.id);
+  if (!p) return res.status(404).json({ error: 'La pensión no existe.' });
+
+  // HU-03 esc. 3: alerta si hay reservas en curso al ocultar
+  const vigentes = db.prepare(`SELECT COUNT(*) AS n FROM reservas r JOIN habitaciones h ON h.id = r.habitacion_id
+    WHERE h.pension_id = ? AND r.estado IN ('Pagada','Confirmada')`).get(p.id).n;
+  db.transaction(() => {
+    if (a.estado) {
+      db.prepare(`UPDATE pensiones SET estado = ?, motivo_rechazo = ?, actualizado_en = datetime('now','localtime') WHERE id = ?`)
+        .run(a.estado, a.estado === 'Rechazada' ? motivo : null, p.id);
+      db.prepare('INSERT INTO notificaciones (usuario_id,mensaje) VALUES (?,?)')
+        .run(p.propietario_id, `Su pensión "${p.nombre}" cambió a estado ${a.estado}${motivo ? '. Motivo: ' + motivo : ''}`);
+    }
+    if (a.destacado !== undefined) db.prepare('UPDATE pensiones SET destacado = ? WHERE id = ?').run(a.destacado, p.id);
+    if (a.resuelve)
+      db.prepare(`UPDATE reportes_pensiones SET estado = 'Resuelto', decision = ?, resuelto_en = datetime('now','localtime')
+                  WHERE pension_id = ? AND estado = 'Pendiente'`).run(motivo || accion, p.id);
+    db.prepare(`INSERT INTO bitacora_verificaciones (pension_id,admin_id,accion,motivo) VALUES (?,?,?,?)`)
+      .run(p.id, req.session.usuario.id, a.bitacora, motivo || null);
+  })();
+  res.json({
+    mensaje: 'Decisión de moderación registrada y aplicada al catálogo.',
+    advertencia: accion === 'ocultar' && vigentes > 0
+      ? `La pensión tiene ${vigentes} reserva(s) vigente(s): se conservan hasta su finalización.` : null,
+  });
 });
 
 module.exports = router;
