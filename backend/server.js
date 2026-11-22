@@ -38,6 +38,7 @@ app.use('/api/pensiones', require('./routes/pensiones'));
 app.use('/api/reservas',  require('./routes/reservas'));
 app.use('/api/resenas',   require('./routes/resenas'));
 app.use('/api/admin',     require('./routes/admin'));
+app.use('/api/favoritos', require('./routes/favoritos'));
 
 // Capa de presentación (RNF-01): sirve la aplicación React compilada (client/dist).
 // En Vercel los archivos estáticos los sirve la CDN y esta parte no se usa.

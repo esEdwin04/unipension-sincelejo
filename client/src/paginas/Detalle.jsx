@@ -9,6 +9,7 @@ import { API, cop, cuposTexto, fecha, estrellas, km, ETIQUETA_ESTADO } from '../
 import { useSesion } from '../App.jsx';
 import Icono, { IconoServicio } from '../componentes/Icono.jsx';
 import { Mapa } from '../componentes/TarjetaPension.jsx';
+import BotonFavorito from '../componentes/BotonFavorito.jsx';
 import { Aviso, Avatar, Campo, Cargando, Dialogo, Chip } from '../componentes/ui.jsx';
 
 export default function Detalle() {
@@ -165,6 +166,7 @@ export default function Detalle() {
         <h1>{p.nombre}</h1>
         <p className="det-lugar"><Icono nombre="ubicacion" tam={16} />{p.barrio} · Sincelejo, Sucre
           {p.calificacion && <span className="estrellas" style={{ marginLeft: 10 }}>{estrellas(p.calificacion)}</span>}</p>
+        {p.estado === 'Verificada' && <div className="det-acciones"><BotonFavorito pension={p} conTexto /></div>}
         {revision && <Aviso tipo={p.estado === 'Verificada' ? 'ok' : 'alerta'}>
           Moderación: {ETIQUETA_ESTADO[p.estado]}. {p.visible ? 'Visible en el catálogo.' : 'No visible en el catálogo.'}
           {p.motivo_rechazo && ` Motivo: ${p.motivo_rechazo}.`} La verificación no certifica identidad ni propiedad legal.</Aviso>}

@@ -14,6 +14,7 @@ import Icono from './componentes/Icono.jsx';
 import { useRevelarAlScroll } from './componentes/revelar.js';
 import { Bienvenida, Ingresar, Registro, Recuperar } from './paginas/Acceso.jsx';
 import InicioEstudiante from './paginas/InicioEstudiante.jsx';
+import Favoritos from './paginas/Favoritos.jsx';
 import Catalogo from './paginas/Catalogo.jsx';
 import Detalle from './paginas/Detalle.jsx';
 import MisReservas from './paginas/MisReservas.jsx';
@@ -33,7 +34,7 @@ export const useSesion = () => useContext(CtxSesion);
 
 const NAV = {
   invitado: [['/', 'inicio', 'Inicio'], ['/buscar', 'buscar', 'Buscar'], ['/ingresar', 'usuario', 'Ingresar']],
-  estudiante: [['/', 'inicio', 'Inicio'], ['/buscar', 'buscar', 'Buscar'], ['/mis-reservas', 'calendario', 'Reservas'], ['/perfil', 'usuario', 'Perfil']],
+  estudiante: [['/', 'inicio', 'Inicio'], ['/buscar', 'buscar', 'Buscar'], ['/favoritos', 'corazon', 'Favoritos'], ['/mis-reservas', 'calendario', 'Reservas'], ['/perfil', 'usuario', 'Perfil']],
   propietario: [['/', 'inicio', 'Inicio'], ['/mis-pensiones', 'edificio', 'Mis pensiones'], ['/solicitudes', 'solicitudes', 'Solicitudes'], ['/perfil', 'usuario', 'Perfil']],
   administrador: [['/', 'inicio', 'Resumen'], ['/admin/publicaciones', 'lista', 'Publicaciones'], ['/admin/reportes', 'escudo', 'Reportes'], ['/admin/auditoria', 'grafica', 'Auditoría'], ['/perfil', 'usuario', 'Perfil']],
 };
@@ -44,6 +45,7 @@ export default function App() {
   const [splash, setSplash] = useState(true);
   const [toast, setToast] = useState('');
   const protegida = useRef(null); // mensaje de confirmación si hay un borrador sin enviar
+  const [favoritos, setFavoritos] = useState(() => new Set()); // id de las pensiones guardadas por el estudiante
   const { pathname } = useLocation();
   const nav = useNavigate();
 
@@ -61,6 +63,21 @@ export default function App() {
   }, [refrescar]);
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
   useRevelarAlScroll(); // efecto «descubrir»: los bloques aparecen al hacer scroll
+  // Favoritos del estudiante: se cargan al iniciar sesión y se comparten con todas las tarjetas
+  useEffect(() => {
+    if (usuario?.rol !== 'estudiante') { setFavoritos(new Set()); return; }
+    API.get('/favoritos/ids').then((ids) => setFavoritos(new Set(ids))).catch(() => {});
+  }, [usuario?.id, usuario?.rol]);
+  // Guarda o quita una pensión con actualización optimista (si el servidor falla, se revierte)
+  const alternarFavorito = useCallback(async (pension) => {
+    const guardado = favoritos.has(pension.id);
+    const cambiar = (agregar) => setFavoritos((f) => { const n = new Set(f); agregar ? n.add(pension.id) : n.delete(pension.id); return n; });
+    cambiar(!guardado);
+    try {
+      const r = guardado ? await API.del(`/favoritos/${pension.id}`) : await API.put(`/favoritos/${pension.id}`);
+      setToast(r.mensaje);
+    } catch (e) { cambiar(guardado); setToast(e.message); }
+  }, [favoritos]);
   useEffect(() => { if (!toast) return undefined; const t = setTimeout(() => setToast(''), 6500); return () => clearTimeout(t); }, [toast]);
 
   const proteger = useCallback((msg) => { protegida.current = msg; }, []);
@@ -78,7 +95,7 @@ export default function App() {
 
   if (cargando || splash) return <Splash />;
 
-  const ctx = { usuario, refrescar, salir, avisar: setToast, irA, proteger };
+  const ctx = { usuario, refrescar, salir, avisar: setToast, irA, proteger, favoritos, alternarFavorito };
   const rol = usuario?.rol || 'invitado';
   const enDetalle = pathname.startsWith('/pension/');
 
@@ -120,6 +137,7 @@ export default function App() {
           <Route path="/buscar" element={rol === 'invitado' || rol === 'estudiante' ? <Catalogo /> : <Navigate to="/" replace />} />
           <Route path="/pension/:id" element={<Detalle />} />
           <Route path="/mis-reservas" element={soloRol('estudiante', <MisReservas />)} />
+          <Route path="/favoritos" element={soloRol('estudiante', <Favoritos />)} />
           <Route path="/perfil/*" element={conSesion(<Perfil />)} />
           <Route path="/mis-pensiones" element={soloRol('propietario', <MisPensiones />)} />
           <Route path="/mis-pensiones/nueva" element={soloRol('propietario', <EditorPension />)} />

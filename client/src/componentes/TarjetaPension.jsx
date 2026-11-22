@@ -5,6 +5,7 @@ import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import Icono, { IconoServicio } from './Icono.jsx';
 import { cop, cuposTexto, km } from '../api.js';
+import BotonFavorito from './BotonFavorito.jsx';
 
 const TIPO = { Mixta: 'Individual y compartida' };
 
@@ -24,6 +25,7 @@ export default function TarjetaPension({ p, distancia, etiquetaDistancia }) {
           </span>
         )}
         <span className={`insignia cupos ${cupos > 0 ? '' : 'sin-cupos'}`}>{cuposTexto(cupos)}</span>
+        <BotonFavorito pension={p} />
       </div>
       <div className="tp-cuerpo">
         <Link className="tp-titulo" to={`/pension/${p.id}`}>{p.nombre}</Link>

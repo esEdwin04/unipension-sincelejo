@@ -31,6 +31,7 @@ const TRAZOS = {
   estrella: <path d="m12 3 3 6 6 1-4.5 4.5 1 6.5-5.5-3-5.5 3 1-6.5L3 10l6-1Z" />,
   calendario: <><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M3 10h18M8 3v4M16 3v4" /></>,
   grafica: <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
+  corazon: <path d="M12 20s-7.5-4.6-9.2-9.3C1.6 7.3 3.8 4 7.3 4c2 0 3.6 1.1 4.7 2.7C13.1 5.1 14.7 4 16.7 4c3.5 0 5.7 3.3 4.5 6.7C19.5 15.4 12 20 12 20Z" />,
 };
 
 export default function Icono({ nombre, tam = 22 }) {

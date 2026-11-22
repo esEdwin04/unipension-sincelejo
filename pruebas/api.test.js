@@ -228,7 +228,7 @@ test('Disponibilidad: reservar, cancelar, vencer y rechazar actualizan los cupos
   const db = require('../backend/db');
   const anon = cliente(), est = cliente(), prop = cliente();
   await est.entrar('estudiante2@unipension.co', 'est123');
-  await prop.entrar('propietaria@unipension.co', 'prop123');
+  await prop.entrar('propietario3@unipension.co', 'prop123'); // Martha Salgado publica «Pensión Casa Serena»
   const enCatalogo = async (nombre) => (await anon.get('/pensiones')).datos.find((x) => x.nombre === nombre);
   const manana = new Date(Date.now() + 86400e3).toISOString().slice(0, 10);
 
@@ -293,8 +293,48 @@ test('Mejor valoradas: promedio, cantidad de reseñas, orden y moderación (HU-1
   // Una reseña reportada por el propietario deja de contar: La Terraza tenía una sola
   const terraza = lista.find((p) => p.nombre === 'Pensión La Terraza');
   const resena = (await anon.get(`/pensiones/${terraza.id}`)).datos.resenas[0];
-  await prop.entrar('propietaria@unipension.co', 'prop123');
+  await prop.entrar('propietario2@unipension.co', 'prop123'); // Rafael Pérez publica «Pensión La Terraza»
   assert.equal((await prop.post(`/resenas/${resena.id}/reportar`)).status, 200);
   r = await anon.get('/pensiones/mejor-valoradas?limite=12');
   assert.equal(r.datos.find((p) => p.nombre === 'Pensión La Terraza'), undefined);
+});
+
+test('Arrendadores: las pensiones de demostración no son todas del mismo propietario', async () => {
+  const db = require('../backend/db');
+  const duenos = await db.prepare(`SELECT u.correo, COUNT(*) AS n FROM pensiones p JOIN usuarios u ON u.id = p.propietario_id
+    WHERE u.correo LIKE '%@unipension.co' GROUP BY u.correo`).all();
+  assert.ok(duenos.length >= 5, `solo hay ${duenos.length} arrendadores`);
+  assert.ok(duenos.every((d) => d.n <= 4), 'ningún arrendador concentra la oferta');
+  // Cada arrendador ve solo sus pensiones y su ficha pública muestra su nombre
+  const rafael = cliente(); await rafael.entrar('propietario2@unipension.co', 'prop123');
+  const mias = (await rafael.get('/pensiones/mias')).datos.map((p) => p.nombre).sort();
+  assert.deepEqual(mias, ['Pensión El Patio', 'Pensión La Terraza', 'Residencia El Edén']);
+  const eden = (await cliente().get('/pensiones')).datos.find((p) => p.nombre === 'Residencia El Edén');
+  assert.equal((await cliente().get(`/pensiones/${eden.id}`)).datos.contacto.nombre, 'Rafael Pérez Arrieta');
+  // Las 5 cuentas de propietario aparecen en el acceso rápido de demostración
+  assert.equal((await cliente().get('/auth/demo')).datos.filter((c) => c.rol === 'propietario').length, 5);
+});
+
+test('Favoritos: guardar, listar y quitar; solo el estudiante dueño los ve', async () => {
+  const est = cliente(), otro = cliente(), prop = cliente(), anon = cliente();
+  await est.entrar('estudiante@unipension.co', 'est123');
+  await otro.entrar('estudiante2@unipension.co', 'est123');
+  await prop.entrar('propietaria@unipension.co', 'prop123');
+  const [a, b] = (await anon.get('/pensiones')).datos;
+
+  assert.equal((await anon.put(`/favoritos/${a.id}`)).status, 401);   // sin sesión
+  assert.equal((await prop.put(`/favoritos/${a.id}`)).status, 403);   // solo estudiantes
+  assert.equal((await est.put('/favoritos/999999')).status, 404);     // pensión inexistente
+  assert.equal((await est.put(`/favoritos/${a.id}`)).status, 200);
+  assert.equal((await est.put(`/favoritos/${a.id}`)).status, 200);    // idempotente
+  await est.put(`/favoritos/${b.id}`);
+  assert.deepEqual((await est.get('/favoritos/ids')).datos.sort((x, y) => x - y), [a.id, b.id].sort((x, y) => x - y));
+  const lista = (await est.get('/favoritos')).datos;
+  assert.equal(lista.length, 2);
+  assert.ok(lista.every((p) => p.publicada && p.foto && p.tarifa_mensual > 0));
+  // Otro estudiante no ve los favoritos ajenos
+  assert.deepEqual((await otro.get('/favoritos/ids')).datos, []);
+  // Quitar
+  assert.equal((await est.del(`/favoritos/${a.id}`)).status, 200);
+  assert.deepEqual((await est.get('/favoritos/ids')).datos, [b.id]);
 });
