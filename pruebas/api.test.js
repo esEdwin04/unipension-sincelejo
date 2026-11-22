@@ -21,6 +21,7 @@ before(async () => {
 });
 after(() => {
   servidor.close();
+  require('../backend/db').close(); // en Windows no se puede borrar un archivo SQLite abierto (EPERM)
   for (const sufijo of ['', '-wal', '-shm']) fs.rmSync(dbTemporal + sufijo, { force: true });
 });
 
