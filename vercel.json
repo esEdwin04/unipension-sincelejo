@@ -1,0 +1,23 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": "client/dist",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "node_modules/pdfkit/js/data/**",
+      "maxDuration": 15
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.js" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/img/pensiones/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=2592000, immutable" }]
+    }
+  ]
+}

@@ -14,10 +14,10 @@ Docente: Laudyth Lambraño
 | Diseño | CSS propio responsivo, tipografías Google Fonts (Cormorant Garamond + Jost) |
 | Mapas | Leaflet + OpenStreetMap |
 | Lógica de negocio | Node.js + Express (API REST) |
-| Persistencia | SQLite (better-sqlite3) → migrable a MySQL/PostgreSQL |
+| Persistencia | SQLite con libSQL: archivo local en desarrollo, [Turso](https://turso.tech) en producción |
 | Seguridad | bcryptjs (hash de contraseñas), sesiones HTTP, control por rol |
 | Comprobantes | PDFKit (PDF de pagos) |
-| Despliegue | Render.com plan gratuito (`render.yaml` incluido) |
+| Despliegue | Vercel (frontend en CDN + API como función sin servidor) · Render como alternativa |
 
 ### Versión 0.3 — adaptada al prototipo inicial (Figma)
 
@@ -58,23 +58,39 @@ La base de datos se crea sola con datos semilla la primera vez.
 
 **Pruebas automáticas del API:** `npm test` (8 pruebas con el runner nativo de Node; usan una base temporal).
 
-**Variables de entorno opcionales:** `PORT`, `SESSION_SECRET`, `DB_PATH` (ruta de la base SQLite) y
+**Variables de entorno opcionales:** `PORT`, `SESSION_SECRET`, `DB_PATH` (ruta de la base SQLite local),
+`TURSO_DATABASE_URL` y `TURSO_AUTH_TOKEN` (base en la nube; si no están, se usa el archivo local) y
 `MODO_DEMO=false` (desactiva las cuentas de demostración y la exigencia de documentos ficticios `DEMO-`).
 
-## Publicación en la web (Render, gratis)
+## Publicación en la web (Vercel + Turso, gratis)
 
-1. Subir el repositorio a GitHub.
-2. En [render.com](https://render.com) → *New → Web Service* → conectar el repositorio.
-3. Render detecta `render.yaml` y configura build (`npm install && npm run build`) y arranque (`npm start`) automáticamente.
-4. En 2–3 minutos la app queda en `https://unipension-sincelejo.onrender.com`, con HTTPS y accesible desde cualquier dispositivo.
+La aplicación se publica en **Vercel**: el frontend se sirve desde la CDN y la API de Express corre como función sin servidor (`api/index.js`, configurada en `vercel.json`).
+Como las funciones no conservan archivos ni memoria, la base de datos está en **Turso** (SQLite en la nube) y las sesiones se guardan en la tabla `sesiones`.
 
-Nota del plan gratuito: el servicio se "duerme" tras 15 min sin tráfico (la primera visita tarda ~30 s en despertar) y el archivo SQLite se regenera con datos semilla en cada despliegue. Para datos persistentes: PostgreSQL gratuito de Render o [Turso](https://turso.tech) (SQLite en la nube).
+1. **Base de datos** — crear la cuenta en [turso.tech](https://turso.tech) (plan gratuito) y, con la CLI de Turso:
+   ```bash
+   turso db create unipension-sincelejo
+   turso db show unipension-sincelejo --url      # → TURSO_DATABASE_URL
+   turso db tokens create unipension-sincelejo   # → TURSO_AUTH_TOKEN
+   ```
+2. **Crear tablas y datos semilla** (una sola vez, desde el equipo):
+   ```bash
+   TURSO_DATABASE_URL=libsql://... TURSO_AUTH_TOKEN=... npm run db:iniciar
+   ```
+3. **Vercel** — importar el repositorio en [vercel.com](https://vercel.com/new) o usar `npx vercel`. Definir las variables de entorno
+   `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` y `SESSION_SECRET` (texto aleatorio largo) en *Settings → Environment Variables*.
+4. Cada `git push` a `main` vuelve a publicar automáticamente.
+
+Las credenciales solo viven en Vercel y en el equipo de quien despliega: **nunca** se suben a GitHub (`.env*` está en `.gitignore`).
+
+*Alternativa:* `render.yaml` sigue sirviendo para Render.com; con las mismas variables de Turso los datos también persisten allí.
 
 ## Estructura
 
 ```
 unipension/
-├── client/                  # Aplicación React (Vite)
+├── api/index.js             # Entrada de Vercel (exporta la app de Express)
+├── client/                  # Aplicación React (Vite); fotos en client/public/img/pensiones/
 │   ├── src/paginas/         # Acceso, InicioEstudiante, Catalogo, Detalle, MisReservas, Perfil
 │   │   ├── propietario/     # InicioPropietario, MisPensiones, EditorPension, Solicitudes
 │   │   └── admin/           # Resumen, Publicaciones, Reportes, Auditoria
@@ -91,7 +107,7 @@ unipension/
 │   │   ├── reservas.js      # HU-06..HU-09, HU-11: reservas, pagos, bandeja
 │   │   ├── resenas.js       # HU-10: calificaciones y moderación
 │   │   └── admin.js         # HU-03/HU-12: moderación, reportes, indicadores, trazabilidad, CSV
-│   ├── utils/               # pdf.js (HU-08), pensiones.js (cupos/validación), validacion.js
+│   ├── utils/               # pdf.js (HU-08), pensiones.js (cupos/validación), validacion.js, sesiones.js
 │   └── scripts/             # mantenimiento: respaldo diario (actividad DB3, vacía por ahora)
 ├── pruebas/api.test.js      # pruebas automáticas del API (npm test)
 └── docs/                    # GUIA_DESARROLLO.md, guía técnica y manual de usuario
