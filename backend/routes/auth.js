@@ -13,12 +13,12 @@ const router = express.Router();
 
 // Campos que se pueden devolver al propio usuario (nunca clave_hash)
 const CAMPOS_PERFIL = `id, nombre, correo, telefono, rol, foto, institucion, programa, nivel, ciudad, zona, bio,
-  relacion, documento, whatsapp_habilitado, consentimiento_version, consentimiento_fecha, creado_en`;
+  relacion, documento, whatsapp_habilitado, avisos_whatsapp, consentimiento_version, consentimiento_fecha, creado_en`;
 
 const resumen = (u) => ({ id: u.id, nombre: u.nombre, rol: u.rol });
 const perfilDe = async (id) => {
   const u = await db.prepare(`SELECT ${CAMPOS_PERFIL} FROM usuarios WHERE id = ?`).get(id);
-  if (u) u.whatsapp_habilitado = !!u.whatsapp_habilitado;
+  if (u) { u.whatsapp_habilitado = !!u.whatsapp_habilitado; u.avisos_whatsapp = !!u.avisos_whatsapp; }
   return u;
 };
 
@@ -120,6 +120,8 @@ router.put('/perfil', requiereSesion, async (req, res) => {
   if (actual.rol === 'propietario' && !telefono) errores.telefono = 'El propietario debe registrar un WhatsApp válido.';
   const whatsapp = b.whatsapp_habilitado !== undefined ? !!b.whatsapp_habilitado : actual.whatsapp_habilitado;
   if (whatsapp && !telefono) errores.telefono = 'Configura un número válido para habilitar WhatsApp.';
+  const avisos = b.avisos_whatsapp !== undefined ? !!b.avisos_whatsapp : actual.avisos_whatsapp;
+  if (avisos && !telefono) errores.telefono = 'Registra tu celular para recibir avisos por WhatsApp.';
   if (actual.rol === 'propietario' && b.documento !== undefined && !v.documentoValido(b.documento))
     errores.documento = 'Solo se aceptan documentos ficticios con prefijo DEMO-.';
   if (b.foto && (!/^data:image\/(jpeg|png|webp);base64,/.test(b.foto) || b.foto.length > 400000))
@@ -128,13 +130,13 @@ router.put('/perfil', requiereSesion, async (req, res) => {
 
   const val = (k) => (b[k] !== undefined ? (String(b[k]).trim() || null) : actual[k]);
   await db.prepare(`UPDATE usuarios SET nombre=?, correo=?, telefono=?, foto=?, institucion=?, programa=?, nivel=?, ciudad=?,
-      zona=?, bio=?, relacion=?, documento=?, whatsapp_habilitado=? WHERE id=?`)
+      zona=?, bio=?, relacion=?, documento=?, whatsapp_habilitado=?, avisos_whatsapp=? WHERE id=?`)
     .run(nombre, correo, telefono, b.foto !== undefined ? (b.foto || null) : actual.foto,
          val('institucion'), val('programa'), val('nivel'), val('ciudad'), val('zona'),
          actual.rol === 'propietario' ? val('bio') : actual.bio,
          actual.rol === 'propietario' ? val('relacion') : actual.relacion,
          actual.rol === 'propietario' ? val('documento') : actual.documento,
-         whatsapp ? 1 : 0, actual.id);
+         whatsapp ? 1 : 0, avisos ? 1 : 0, actual.id);
   req.session.usuario.nombre = nombre;
   res.json({ mensaje: 'Cambios guardados.', perfil: await perfilDe(actual.id) });
 });

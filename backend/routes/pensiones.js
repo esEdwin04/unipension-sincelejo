@@ -9,6 +9,7 @@ const db = require('../db');
 const { requiereRol } = require('../middleware/auth');
 const P = require('../utils/pensiones');
 const { normalizarCelular } = require('../utils/validacion');
+const { avisarTodos, ESTADO_VISIBLE } = require('../utils/whatsapp');
 const router = express.Router();
 const { AHORA } = db;
 
@@ -170,6 +171,7 @@ router.patch('/:id/estado', requiereRol('administrador'), async (req, res) => {
     await tx.prepare('INSERT INTO notificaciones (usuario_id,mensaje) VALUES (?,?)')
       .run(p.propietario_id, `Su pensión "${p.nombre}" cambió a estado ${estado}${motivo ? '. Motivo: ' + motivo : ''}`);
   });
+  await avisarTodos([[p.propietario_id, 'unipension_publicacion_estado', [p.nombre, ESTADO_VISIBLE[estado], motivo || 'sin observaciones']]]);
   res.json({
     mensaje: `Estado actualizado a ${estado}`,
     advertencia: estado === 'Suspendida' && vigentes > 0
@@ -268,6 +270,8 @@ router.post('/:id/reportar', requiereRol('estudiante'), async (req, res) => {
         await avisar(a.id, `"${pension.nombre}" se ocultó automáticamente al recibir reportes de ${distintos} estudiantes.`);
     });
     ocultada = true;
+    await avisarTodos([[pension.propietario_id, 'unipension_publicacion_estado',
+      [pension.nombre, ESTADO_VISIBLE.Suspendida, `${distintos} estudiantes reportaron información incorrecta y administración la revisará`]]]);
   }
   res.status(201).json({ mensaje: 'Tu reporte quedó registrado para moderación.', id: result.lastInsertRowid, ocultada });
 });

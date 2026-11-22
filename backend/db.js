@@ -73,7 +73,7 @@ db.hoyColombia = hoyColombia;
 const VERSION_POLITICA = '2026-01-prototipo';
 db.VERSION_POLITICA = VERSION_POLITICA;
 // Cambiar este valor obliga a revisar esquema, migraciones y semillas en el siguiente arranque
-const VERSION_ESQUEMA = '0.3.1-turso';
+const VERSION_ESQUEMA = '0.4.0-whatsapp';
 
 // ---------------------- ESQUEMA ----------------------
 const ESQUEMA = `
@@ -212,6 +212,18 @@ CREATE TABLE IF NOT EXISTS sesiones (                   -- sesiones HTTP (Vercel
   expira INTEGER NOT NULL                               -- milisegundos desde 1970
 );
 
+CREATE TABLE IF NOT EXISTS mensajes_whatsapp (          -- bitácora de avisos por WhatsApp (RF-15)
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  usuario_id INTEGER REFERENCES usuarios(id),
+  telefono   TEXT,
+  plantilla  TEXT NOT NULL,
+  texto      TEXT NOT NULL,                             -- mensaje tal como lo recibe el usuario
+  estado     TEXT NOT NULL CHECK (estado IN ('Enviado','Simulado','Omitido','Error')),
+  detalle    TEXT,
+  wamid      TEXT,                                      -- identificador del mensaje en WhatsApp
+  creado_en  TEXT NOT NULL DEFAULT (${AHORA})
+);
+
 -- Índices para el catálogo con filtros (RNF-03)
 CREATE INDEX IF NOT EXISTS idx_pensiones_estado  ON pensiones(estado);
 CREATE INDEX IF NOT EXISTS idx_pensiones_barrio  ON pensiones(barrio);
@@ -221,6 +233,7 @@ CREATE INDEX IF NOT EXISTS idx_reservas_hab      ON reservas(habitacion_id);
 CREATE INDEX IF NOT EXISTS idx_reservas_est      ON reservas(estudiante_id);
 CREATE INDEX IF NOT EXISTS idx_contactos_pension ON contactos(pension_id);
 CREATE INDEX IF NOT EXISTS idx_sesiones_expira   ON sesiones(expira);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_creado   ON mensajes_whatsapp(creado_en);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_reporte_pendiente_unico
   ON reportes_pensiones(pension_id, estudiante_id) WHERE estado='Pendiente';
 `;
@@ -233,6 +246,7 @@ const COLUMNAS = {
     ['ciudad', "TEXT DEFAULT 'Sincelejo'"], ['zona', 'TEXT'], ['bio', 'TEXT'], ['relacion', 'TEXT'],
     ['documento', 'TEXT'], ['whatsapp_habilitado', 'INTEGER NOT NULL DEFAULT 0'],
     ['consentimiento_version', 'TEXT'], ['consentimiento_fecha', 'TEXT'],
+    ['avisos_whatsapp', 'INTEGER NOT NULL DEFAULT 0'],     // opt-in para recibir avisos por WhatsApp (política de Meta)
   ],
   pensiones: [
     ['tipo_habitacion', "TEXT NOT NULL DEFAULT 'Individual'"], ['costos_adicionales', 'TEXT'], ['instituciones', 'TEXT'],

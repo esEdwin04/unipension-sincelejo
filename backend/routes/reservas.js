@@ -8,6 +8,7 @@ const express = require('express');
 const db = require('../db');
 const { requiereRol, requiereSesion } = require('../middleware/auth');
 const { generarComprobantePDF } = require('../utils/pdf');
+const { avisarTodos } = require('../utils/whatsapp');
 const router = express.Router();
 const { AHORA } = db;
 
@@ -21,7 +22,7 @@ async function liberarVencidas() {
     WHERE (estado = 'Pendiente de pago' AND expira_en < ${AHORA})
        OR (estado = 'Pagada' AND responder_antes < ${AHORA}) LIMIT 1`).get();
   if (!hay) return;
-  await db.transaction(async (tx) => {
+  const canceladas = await db.transaction(async (tx) => {
     const vencidasPago = await tx.prepare(`SELECT * FROM reservas
       WHERE estado = 'Pendiente de pago' AND expira_en < ${AHORA}`).all();
     for (const r of vencidasPago) {
@@ -36,7 +37,14 @@ async function liberarVencidas() {
       await tx.prepare(`UPDATE pagos SET estado='Revertido' WHERE reserva_id=?`).run(r.id);
       await notificar(tx, r.estudiante_id, `Su solicitud #${r.id} fue cancelada por falta de respuesta del propietario (48 h). El pago será revertido.`);
     }
+    return sinRespuesta;
   });
+  if (canceladas.length) {
+    const nombres = await db.prepare(`SELECT r.id, p.nombre FROM reservas r JOIN habitaciones h ON h.id = r.habitacion_id
+      JOIN pensiones p ON p.id = h.pension_id WHERE r.id IN (${canceladas.map(() => '?').join(',')})`).all(...canceladas.map((r) => r.id));
+    const pension = Object.fromEntries(nombres.map((n) => [n.id, n.nombre]));
+    await avisarTodos(canceladas.map((r) => [r.estudiante_id, 'unipension_reserva_cancelada', [r.id, pension[r.id]]]));
+  }
 }
 router.use(async (_req, _res, next) => { await liberarVencidas(); next(); });
 
@@ -120,6 +128,10 @@ router.post('/:id/pagar', requiereRol('estudiante'), async (req, res) => {
     await notificar(tx, pension.propietario_id, `Nueva solicitud pagada #${r.id} para "${pension.nombre}". Tiene 48 horas para responder.`);
     await notificar(tx, r.estudiante_id, `Pago aprobado (${consecutivo}). En el prototipo, el correo de confirmación se registra como notificación.`);
   });
+  await avisarTodos([
+    [pension.propietario_id, 'unipension_solicitud_nueva', [r.id, pension.nombre]],
+    [r.estudiante_id, 'unipension_pago_aprobado', [r.id, pension.nombre, consecutivo]],
+  ]);
   res.json({ mensaje: 'Pago aprobado. Reserva pagada, pendiente de aceptación del propietario.', consecutivo });
 });
 
@@ -177,6 +189,7 @@ router.post('/:id/responder', requiereRol('propietario'), async (req, res) => {
       await tx.prepare(`UPDATE reservas SET estado='Confirmada' WHERE id=?`).run(r.id);
       await notificar(tx, r.estudiante_id, `¡Reserva #${r.id} aceptada en "${r.pension}"! El propietario se pondrá en contacto para coordinar el ingreso.`);
     });
+    await avisarTodos([[r.estudiante_id, 'unipension_reserva_aceptada', [r.id, r.pension]]]);
     return res.json({ mensaje: 'Reserva confirmada y estudiante notificado' });
   }
   if (decision === 'rechazar') {
@@ -187,6 +200,7 @@ router.post('/:id/responder', requiereRol('propietario'), async (req, res) => {
       await tx.prepare(`UPDATE pagos SET estado='Revertido' WHERE reserva_id=? AND estado='Aprobado'`).run(r.id);
       await notificar(tx, r.estudiante_id, `Reserva #${r.id} rechazada. Motivo: ${motivo}. El pago será revertido.`);
     });
+    await avisarTodos([[r.estudiante_id, 'unipension_reserva_rechazada', [r.id, r.pension, motivo]]]);
     return res.json({ mensaje: 'Solicitud rechazada, cupo liberado y pago revertido' });
   }
   res.status(400).json({ error: 'Decisión no válida' });

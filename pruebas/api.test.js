@@ -208,3 +208,68 @@ test('Reserva y pago simulado siguen funcionando (HU-06, HU-07)', async () => {
   assert.equal(r.status, 200);
   assert.match(r.datos.consecutivo, /^UP-/);
 });
+
+test('WhatsApp (RF-15): avisos simulados solo con opt-in y bitácora para el administrador', async () => {
+  const est = cliente(), adm = cliente();
+  await est.entrar('estudiante3@unipension.co', 'est123');
+  await adm.entrar('admin@unipension.co', 'admin123');
+  // Sin celular no se puede aceptar avisos
+  let r = await est.put('/auth/perfil', { telefono: '', avisos_whatsapp: true });
+  assert.equal(r.status, 400);
+  r = await est.put('/auth/perfil', { telefono: '3024444444', avisos_whatsapp: true });
+  assert.equal(r.status, 200);
+  assert.equal(r.datos.perfil.avisos_whatsapp, true);
+
+  const p = (await est.get('/pensiones?q=almendros')).datos[0];
+  const hab = (await est.get(`/pensiones/${p.id}`)).datos.habitaciones.find((h) => h.estado === 'Libre');
+  const manana = new Date(Date.now() + 2 * 86400e3).toISOString().slice(0, 10);
+  r = await est.post('/reservas', { habitacion_id: hab.id, fecha_ingreso: manana, meses: 5 });
+  assert.equal(r.status, 201);
+  r = await est.post(`/reservas/${r.datos.reserva_id}/pagar`, { medio: 'Nequi', simular: 'aprobado' });
+  assert.equal(r.status, 200);
+
+  r = await adm.get('/admin/whatsapp');
+  assert.equal(r.status, 200);
+  assert.equal(r.datos.modo, 'simulado');
+  const alEstudiante = r.datos.mensajes.find((m) => m.plantilla === 'unipension_pago_aprobado');
+  assert.equal(alEstudiante.estado, 'Simulado');
+  assert.equal(alEstudiante.telefono, '+573024444444');
+  assert.match(alEstudiante.texto, /^Hola Daniel, tu pago de la reserva #\d+ en «Pensión Los Almendros» fue aprobado \(comprobante UP-/);
+  // La propietaria no aceptó avisos: se registra como omitido, no se envía
+  assert.equal(r.datos.mensajes.find((m) => m.plantilla === 'unipension_solicitud_nueva').estado, 'Omitido');
+  // Solo el administrador ve la bitácora
+  assert.equal((await est.get('/admin/whatsapp')).status, 403);
+  assert.equal((await adm.post('/admin/whatsapp/prueba', { telefono: '123' })).status, 400);
+});
+
+test('WhatsApp (RF-15): solicitud a la Cloud API de Meta con plantilla y parámetros', async () => {
+  const wa = require('../backend/utils/whatsapp');
+  const original = global.fetch;
+  Object.assign(process.env, { WHATSAPP_TOKEN: 'token-de-prueba', WHATSAPP_PHONE_NUMBER_ID: '123456789' });
+  let pedido;
+  global.fetch = async (url, opciones) => {
+    pedido = { url, opciones };
+    return new Response(JSON.stringify({ messages: [{ id: 'wamid.PRUEBA' }] }), { status: 200 });
+  };
+  try {
+    assert.equal(wa.modo(), 'real');
+    const r = await wa.enviarPlantilla('+573024444444', 'unipension_reserva_aceptada', ['Daniel', '7', 'Pensión X']);
+    assert.deepEqual(r, { estado: 'Enviado', detalle: null, wamid: 'wamid.PRUEBA' });
+    assert.equal(pedido.url, 'https://graph.facebook.com/v26.0/123456789/messages');
+    assert.equal(pedido.opciones.headers.Authorization, 'Bearer token-de-prueba');
+    const cuerpo = JSON.parse(pedido.opciones.body);
+    assert.equal(cuerpo.to, '573024444444');
+    assert.equal(cuerpo.template.name, 'unipension_reserva_aceptada');
+    assert.equal(cuerpo.template.language.code, 'es');
+    assert.deepEqual(cuerpo.template.components[0].parameters.map((x) => x.text), ['Daniel', '7', 'Pensión X']);
+    // Un error de Meta se informa sin lanzar excepción
+    global.fetch = async () => new Response(JSON.stringify({ error: { code: 131030, message: 'Recipient not in allowed list' } }), { status: 400 });
+    const e = await wa.enviarPlantilla('+573024444444', 'unipension_reserva_aceptada', ['a', 'b', 'c']);
+    assert.equal(e.estado, 'Error');
+    assert.match(e.detalle, /131030/);
+  } finally {
+    global.fetch = original;
+    delete process.env.WHATSAPP_TOKEN;
+    delete process.env.WHATSAPP_PHONE_NUMBER_ID;
+  }
+});

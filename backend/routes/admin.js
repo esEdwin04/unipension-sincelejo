@@ -5,6 +5,8 @@
 const express = require('express');
 const db = require('../db');
 const { requiereRol } = require('../middleware/auth');
+const { avisarTodos, enviarPlantilla, modo, PLANTILLAS, ESTADO_VISIBLE } = require('../utils/whatsapp');
+const { normalizarCelular } = require('../utils/validacion');
 const router = express.Router();
 
 router.use(requiereRol('administrador'));
@@ -150,11 +152,37 @@ router.post('/pensiones/:id/moderar', async (req, res) => {
     await tx.prepare(`INSERT INTO bitacora_verificaciones (pension_id,admin_id,accion,motivo) VALUES (?,?,?,?)`)
       .run(p.id, req.session.usuario.id, a.bitacora, motivo || null);
   });
+  if (a.estado) await avisarTodos([[p.propietario_id, 'unipension_publicacion_estado',
+    [p.nombre, ESTADO_VISIBLE[a.estado], motivo || 'sin observaciones']]]);
   res.json({
     mensaje: 'Decisión de moderación registrada y aplicada al catálogo.',
     advertencia: accion === 'ocultar' && vigentes > 0
       ? `La pensión tiene ${vigentes} reserva(s) vigente(s): se conservan hasta su finalización.` : null,
   });
+});
+
+// ---------- AVISOS POR WHATSAPP (RF-15) ----------
+// GET /api/admin/whatsapp — estado de la integración y últimos mensajes
+router.get('/whatsapp', async (_req, res) => {
+  const [mensajes, resumen] = await Promise.all([
+    db.prepare(`SELECT m.*, u.nombre AS usuario FROM mensajes_whatsapp m
+      LEFT JOIN usuarios u ON u.id = m.usuario_id ORDER BY m.id DESC LIMIT 50`).all(),
+    db.prepare(`SELECT estado, COUNT(*) AS n FROM mensajes_whatsapp GROUP BY estado`).all(),
+  ]);
+  res.json({ modo: modo(), plantillas: Object.keys(PLANTILLAS), resumen, mensajes });
+});
+
+// POST /api/admin/whatsapp/prueba { telefono } — envía hello_world para comprobar la conexión con Meta
+router.post('/whatsapp/prueba', async (req, res) => {
+  const telefono = normalizarCelular(req.body.telefono);
+  if (!telefono) return res.status(400).json({ error: 'Escribe un celular colombiano de 10 dígitos que empiece por 3.' });
+  const r = await enviarPlantilla(telefono, 'hello_world', [], { prueba: true });
+  await db.prepare(`INSERT INTO mensajes_whatsapp (usuario_id, telefono, plantilla, texto, estado, detalle, wamid)
+    VALUES (?,?,?,?,?,?,?)`).run(req.session.usuario.id, telefono, 'hello_world', 'Mensaje de prueba hello_world de Meta', r.estado, r.detalle, r.wamid);
+  if (r.estado === 'Error') return res.status(502).json({ error: `Meta rechazó el envío: ${r.detalle}` });
+  res.json({ ...r, mensaje: r.estado === 'Simulado'
+    ? 'Modo simulado: faltan WHATSAPP_TOKEN y WHATSAPP_PHONE_NUMBER_ID, no se envió nada.'
+    : `Mensaje de prueba enviado a ${telefono}.` });
 });
 
 module.exports = router;
