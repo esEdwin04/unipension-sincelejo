@@ -147,7 +147,7 @@ Las actividades siguientes completan los escenarios pendientes y las integracion
 | G1 | Colaboradores, protección de `main`, etiquetas y tablero | configuración de GitHub | — | — | Por iniciar (manual en GitHub) |
 | F1 | Filtro por fecha de ingreso y meses (HU-04 esc. 1) | `client/src/paginas/Catalogo.jsx` | `feature/F1-filtro-fecha-ingreso` | Jesús | Rama subida, abrir PR; necesita B6 |
 | F2 | Reenvío y anulación de comprobantes (HU-08 esc. 3 y 5) | `client/src/paginas/admin/Auditoria.jsx` | `feature/F2-reenvio-anulacion-ui` | Jesús | Rama subida, abrir PR; necesita B4 |
-| F3 | Fotos e ilustraciones reales (WebP ≤ 200 KB) | `client/public/img/`, `docs/` | `feature/F3-imagenes-reales` | José | Por iniciar: necesita fotos autorizadas |
+| F3 | Fotos e ilustraciones reales (WebP ≤ 200 KB) | `client/public/img/pensiones/`, `docs/CREDITOS_IMAGENES.md` | `chore/DS1-despliegue-vercel` | José | Hecho (en `main`): 22 fotos de Unsplash para la demostración |
 | F4 | Revisión responsiva y de accesibilidad | `client/src/estilos.css`, `App.jsx`, `Detalle.jsx` | `fix/F4-accesibilidad-responsive` | José | Rama subida, abrir PR; falta Lighthouse |
 | D1 | Guía actualizada y manual de usuario | `docs/GUIA_DESARROLLO.md`, `docs/MANUAL_USUARIO.md` | `docs/D1-manual-usuario` | José | Rama subida, abrir PR |
 
@@ -178,11 +178,11 @@ Las actividades siguientes completan los escenarios pendientes y las integracion
 | Código | Actividad | Archivos | Rama | Revisa |
 |---|---|---|---|---|
 | DB1 | Migraciones (tokens, anulación, fecha de salida) | `backend/db.js` | `feature/DB1-migraciones` | Jesús |
-| DB2 | Base persistente en la nube | `backend/db.js`, `render.yaml` | `feature/DB2-base-persistente` | Jesús |
+| DB2 | Base persistente en la nube — **hecho: Turso** | `backend/db.js` | `chore/DS1-despliegue-vercel` | Jesús |
 | DB3 | Respaldo diario con retención de 30 días (RNF-09) | `backend/scripts/respaldo.js` (nuevo) | `feature/DB3-respaldo-diario` | Edwin |
 | DB4 | Fotos en Cloudinary | `backend/routes/pensiones.js` | `feature/DB4-fotos-cloudinary` | Jesús |
 | DB5 | Rendimiento del catálogo (RNF-03) | `backend/db.js` | `feature/DB5-rendimiento-catalogo` | Jesús |
-| DS1 | Despliegue en Render | `render.yaml` | `chore/DS1-despliegue-render` | Edwin |
+| DS1 | Despliegue — **hecho: Vercel**, https://unipension-sincelejo.vercel.app | `vercel.json`, `api/index.js` | `chore/DS1-despliegue-vercel` | Edwin |
 
 **Dependencias entre áreas:** B6 → F1 · B4 → F2 · DB1 → B2, B4 y B6 · DB4 → F3.
 
