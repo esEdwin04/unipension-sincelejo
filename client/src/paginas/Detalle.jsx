@@ -3,7 +3,7 @@
 // + contacto por WhatsApp y reporte de información (prototipo inicial).
 // Propietario y administrador la ven en modo "Revisión de pensión".
 // =============================================================
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { API, cop, cuposTexto, fecha, estrellas, km, ETIQUETA_ESTADO } from '../api.js';
 import { useSesion } from '../App.jsx';
@@ -121,7 +121,9 @@ export default function Detalle() {
       <main className="contenido">
         <section className="galeria" aria-label="Galería de fotografías">
           <div className="galeria-principal">
-            <img src={p.fotos[foto] || p.fotos[0] || '/img/placeholder1.svg'} alt={`Fotografía ${foto + 1} de ${p.nombre}`} onClick={() => setVisor(true)} />
+            <button type="button" className="galeria-ampliar" onClick={() => setVisor(true)} aria-label={`Ampliar fotografía ${foto + 1} de ${p.nombre}`}>
+              <img src={p.fotos[foto] || p.fotos[0] || '/img/placeholder1.svg'} alt={`Fotografía ${foto + 1} de ${p.nombre}`} />
+            </button>
             <span className="contador"><Icono nombre="foto" tam={16} />{foto + 1} / {p.fotos.length}</span>
           </div>
           {p.fotos.length > 1 && (
@@ -275,7 +277,7 @@ export default function Detalle() {
         </div>
       )}
 
-      {visor && <div className="visor" onClick={() => setVisor(false)} role="dialog" aria-label="Vista ampliada"><img src={p.fotos[foto]} alt={`Fotografía ampliada de ${p.nombre}`} /></div>}
+      {visor && <VisorFoto src={p.fotos[foto] || '/img/placeholder1.svg'} alt={`Fotografía ampliada de ${p.nombre}`} cerrar={() => setVisor(false)} />}
 
       {dialogo === 'contacto' && contacto && (
         <Dialogo titulo={contacto.url ? 'WhatsApp abierto' : 'Vista previa de WhatsApp'} cerrar={() => setDialogo(null)}>
@@ -314,5 +316,23 @@ export default function Detalle() {
         </Dialogo>
       )}
     </div>
+  );
+}
+
+// Vista ampliada de la foto en un <dialog> nativo: atrapa el foco, se cierra con Esc,
+// con el botón o con clic fuera de la imagen, y devuelve el foco a la galería (F4).
+function VisorFoto({ src, alt, cerrar }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const d = ref.current;
+    d?.showModal();
+    return () => d?.close();
+  }, []);
+  return (
+    <dialog ref={ref} className="visor" aria-label="Vista ampliada de la fotografía"
+            onCancel={(e) => { e.preventDefault(); cerrar(); }} onClick={(e) => { if (e.target === e.currentTarget) cerrar(); }}>
+      <button type="button" className="visor-cerrar" onClick={cerrar} aria-label="Cerrar vista ampliada" autoFocus><Icono nombre="cerrar" /></button>
+      <img src={src} alt={alt} onClick={cerrar} />
+    </dialog>
   );
 }

@@ -100,6 +100,12 @@ export default function App() {
   return (
     <CtxSesion.Provider value={ctx}>
       <div className="app">
+        {/* F4: enlace para saltar la navegación con el teclado (WCAG 2.4.1) */}
+        <a href="#contenido" className="saltar" onClick={(e) => {
+          e.preventDefault();
+          const principal = document.querySelector('main');
+          if (principal) { principal.setAttribute('tabindex', '-1'); principal.focus(); }
+        }}>Saltar al contenido</a>
         {!enDetalle && <Cabecera />}
         {!enDetalle && <NavPrincipal items={NAV[rol]} />}
         {toast && (
