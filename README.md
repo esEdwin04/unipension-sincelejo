@@ -61,7 +61,8 @@ La base de datos se crea sola con datos semilla la primera vez.
 **Pruebas automáticas del API:** `npm test` (8 pruebas con el runner nativo de Node; usan una base temporal).
 
 **Variables de entorno opcionales:** `PORT`, `SESSION_SECRET`, `DB_PATH` (ruta de la base SQLite local),
-`TURSO_DATABASE_URL` y `TURSO_AUTH_TOKEN` (base en la nube; si no están, se usa el archivo local) y
+`TURSO_DATABASE_URL` y `TURSO_AUTH_TOKEN` (base en la nube; si no están, se usa el archivo local),
+`WHATSAPP_TOKEN` y `WHATSAPP_PHONE_NUMBER_ID` (avisos por WhatsApp; sin ellas funcionan en modo simulado, ver [docs/WHATSAPP.md](docs/WHATSAPP.md)) y
 `MODO_DEMO=false` (desactiva las cuentas de demostración y la exigencia de documentos ficticios `DEMO-`).
 
 ## Publicación en la web (Vercel + Turso, gratis)
