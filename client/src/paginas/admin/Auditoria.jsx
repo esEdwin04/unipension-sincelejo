@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { API, cop, estrellas, fecha } from '../../api.js';
 import { useSesion } from '../../App.jsx';
 import { Aviso, Campo, Cargando, Chip, TituloPagina } from '../../componentes/ui.jsx';
+import PanelWhatsApp from './PanelWhatsApp.jsx';
 
 export default function Auditoria() {
   const { avisar } = useSesion();
@@ -52,7 +53,7 @@ export default function Auditoria() {
         ))}
       </div>
       <div className="pestanas" role="group" aria-label="Secciones de auditoría">
-        {[['trazabilidad', 'Trazabilidad'], ['ocupacion', 'Ocupación'], ['resenas', `Reseñas reportadas (${resenas.length})`], ['bitacora', 'Bitácora']].map(([k, t]) => (
+        {[['trazabilidad', 'Trazabilidad'], ['ocupacion', 'Ocupación'], ['resenas', `Reseñas reportadas (${resenas.length})`], ['bitacora', 'Bitácora'], ['whatsapp', 'WhatsApp']].map(([k, t]) => (
           <button key={k} className={pestana === k ? 'activo' : ''} aria-pressed={pestana === k} onClick={() => setPestana(k)}>{t}</button>
         ))}
       </div>
@@ -133,6 +134,8 @@ export default function Auditoria() {
           </table>
         </section>
       )}
+
+      {pestana === 'whatsapp' && <PanelWhatsApp />}
     </main>
   );
 }

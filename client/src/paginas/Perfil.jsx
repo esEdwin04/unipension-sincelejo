@@ -113,6 +113,10 @@ function EditarPerfil({ perfil, guardado }) {
         <Campo etiqueta={f.rol === 'propietario' ? 'Número de WhatsApp (+57)' : 'Número de teléfono (+57)'} error={errores.telefono}>
           <input type="tel" value={f.telefono || ''} onChange={set('telefono')} placeholder="3XX XXX XXXX" />
         </Campo>
+        {/* Opt-in exigido por WhatsApp para recibir mensajes de la empresa (RF-15) */}
+        <label className="check"><input type="checkbox" checked={!!f.avisos_whatsapp} onChange={set('avisos_whatsapp')} />
+          <span>Quiero recibir avisos de UniPensión por WhatsApp en este número
+            ({f.rol === 'propietario' ? 'solicitudes nuevas y decisiones sobre mis publicaciones' : 'pagos y respuestas a mis reservas'}).</span></label>
         {f.rol === 'estudiante' && (
           <>
             <div className="titulo-form"><span><Icono nombre="libro" tam={18} /></span><div><h2>Tu vida estudiantil</h2><p>Institución, programa y residencia.</p></div></div>
@@ -170,6 +174,7 @@ function Configuracion({ perfil, exito }) {
       <ItemMenu icono="llave" titulo="Cambiar contraseña" detalle="Mínimo 8 caracteres con mayúscula, minúscula y número" onClick={() => nav('/perfil/clave')} />
       <ItemMenu icono="mensaje" titulo="Correo electrónico" detalle={perfil.correo} onClick={() => nav('/perfil/editar')} />
       <ItemMenu icono="usuario" titulo="Teléfono" detalle={perfil.telefono || 'Sin registrar'} onClick={() => nav('/perfil/editar')} />
+      <ItemMenu icono="mensaje" titulo="Avisos por WhatsApp" detalle={perfil.avisos_whatsapp ? 'Activados' : 'Desactivados'} onClick={() => nav('/perfil/editar')} />
       <ItemMenu icono="escudo" titulo="Privacidad y política de datos" onClick={() => nav('/perfil/privacidad')} />
       <button className="salir" onClick={salir}><Icono nombre="salir" />Cerrar sesión</button>
       <Aviso>No se ofrece borrado automático de cuentas con publicaciones, reservas o decisiones vinculadas, para no perder trazabilidad.
