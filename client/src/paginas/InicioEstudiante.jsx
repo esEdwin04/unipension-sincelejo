@@ -12,8 +12,12 @@ export default function InicioEstudiante() {
   const { usuario } = useSesion();
   const nav = useNavigate();
   const [pensiones, setPensiones] = useState(null);
+  const [valoradas, setValoradas] = useState(null);
   const [error, setError] = useState('');
-  useEffect(() => { API.get('/pensiones').then(setPensiones).catch((e) => setError(e.message)); }, []);
+  useEffect(() => {
+    API.get('/pensiones').then(setPensiones).catch((e) => setError(e.message));
+    API.get('/pensiones/mejor-valoradas?limite=3').then(setValoradas).catch(() => setValoradas([]));
+  }, []);
 
   return (
     <main className="contenido">
@@ -50,6 +54,20 @@ export default function InicioEstudiante() {
       <div className="grid-pensiones">
         {pensiones?.slice(0, 6).map((p) => <TarjetaPension key={p.id} p={p} />)}
       </div>
+
+      {/* Mejor valoradas (HU-10): promedio de reseñas de estudiantes con estadía finalizada */}
+      {valoradas?.length > 0 && (
+        <>
+          <section className="cabeza-seccion" aria-labelledby="titulo-valoradas">
+            <div><p className="eyebrow">Opiniones de estudiantes que ya vivieron allí</p><h2 id="titulo-valoradas">Mejor valoradas</h2></div>
+            <Link className="btn-link" to="/buscar?orden=calificacion">Ver todas <Icono nombre="flecha" tam={17} /></Link>
+          </section>
+          <div className="grid-pensiones">
+            {valoradas.map((p) => <TarjetaPension key={p.id} p={p} />)}
+          </div>
+          <p className="fine">Solo opinan estudiantes con una estadía finalizada en la pensión. Las reseñas se moderan.</p>
+        </>
+      )}
 
       <section className="pasos">
         <p className="eyebrow">A tu ritmo, con información clara</p>

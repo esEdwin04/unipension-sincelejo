@@ -11,7 +11,7 @@ export default function TarjetaPension({ p, distancia, etiquetaDistancia }) {
       <div className="tp-foto">
         <img src={p.foto || '/img/placeholder1.svg'} alt={`Imagen de ${p.nombre}`} loading="lazy" />
         {p.destacado && <span className="insignia dest"><Icono nombre="estrella" tam={13} />Destacado</span>}
-        <span className="insignia cupos">{cuposTexto(p.cupos ?? p.habitaciones_libres)}</span>
+        <span className={`insignia cupos ${(p.cupos ?? p.habitaciones_libres) > 0 ? '' : 'sin-cupos'}`}>{cuposTexto(p.cupos ?? p.habitaciones_libres)}</span>
       </div>
       <div className="tp-cuerpo">
         <div className="tp-precio">
@@ -23,7 +23,13 @@ export default function TarjetaPension({ p, distancia, etiquetaDistancia }) {
         <div className="tp-servicios">
           {servicios.slice(0, 3).map((s) => <span key={s}><IconoServicio servicio={s} tam={15} />{s}</span>)}
         </div>
-        {p.calificacion && <span className="estrellas">{'★'.repeat(Math.round(p.calificacion))} {String(p.calificacion).replace('.', ',')}</span>}
+        {p.calificacion && (
+          <span className="estrellas" aria-label={`Calificación ${String(p.calificacion).replace('.', ',')} de 5`}>
+            {'★'.repeat(Math.round(p.calificacion))} {String(p.calificacion).replace('.', ',')}
+            {p.total_resenas > 0 && <small className="muted"> · {p.total_resenas} {p.total_resenas === 1 ? 'reseña' : 'reseñas'}</small>}
+          </span>
+        )}
+        {p.comentario_destacado && <p className="tp-cita">“{p.comentario_destacado}”</p>}
         {distancia != null && <p className="tp-dist">Aprox. {km(distancia)} km en línea recta · {etiquetaDistancia}</p>}
         <div className="tp-pie">
           <span>Información declarada</span>

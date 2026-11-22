@@ -73,7 +73,7 @@ db.hoyColombia = hoyColombia;
 const VERSION_POLITICA = '2026-01-prototipo';
 db.VERSION_POLITICA = VERSION_POLITICA;
 // Cambiar este valor obliga a revisar esquema, migraciones y semillas en el siguiente arranque
-const VERSION_ESQUEMA = '0.3.1-turso';
+const VERSION_ESQUEMA = '0.3.2-valoradas';
 
 // ---------------------- ESQUEMA ----------------------
 const ESQUEMA = `
@@ -349,6 +349,47 @@ async function sembrarPrototipo(tx) {
   }
 }
 
+// Reseñas de demostración (HU-10) para la sección «Mejor valoradas». Cada reseña se apoya en una
+// estadía Finalizada del estudiante, como exige la regla de la historia. Se siembran una sola vez
+// (marca en meta), así que si el administrador las oculta o se borran no vuelven a aparecer.
+const RESENAS_DEMO = [
+  // [pensión, correo del estudiante, estrellas, comentario, fecha de ingreso]
+  ['Pensión Luz del Caribe', 'estudiante@unipension.co', 5, 'Habitación amplia y con baño privado. La comida es casera y a buena hora.', '2026-02-02'],
+  ['Pensión Luz del Caribe', 'estudiante2@unipension.co', 5, 'Muy tranquila para estudiar y el internet nunca falló en todo el semestre.', '2026-02-09'],
+  ['Pensión Luz del Caribe', 'estudiante3@unipension.co', 4, 'Todo bien; queda un poco lejos de la CUN, pero hay buseta cerca.', '2026-03-01'],
+  ['Residencia El Edén', 'estudiante2@unipension.co', 5, 'Escritorio cómodo y buena luz. La dueña está pendiente de todo.', '2026-01-26'],
+  ['Residencia El Edén', 'estudiante3@unipension.co', 5, 'A pocas cuadras de Unisucre. El aseo por turnos funciona bien.', '2026-02-16'],
+  ['Residencia El Edén', 'estudiante@unipension.co', 4, 'Buena relación precio y calidad. A veces hay ruido el fin de semana.', '2026-03-09'],
+  ['Pensión La Ceiba', 'estudiante@unipension.co', 5, 'Céntrica y con lavandería incluida, eso ahorra bastante.', '2026-01-19'],
+  ['Pensión La Ceiba', 'estudiante3@unipension.co', 4, 'Ambiente de estudio de verdad. Las habitaciones son algo pequeñas.', '2026-02-23'],
+  ['Pensión Doña Carmen', 'estudiante3@unipension.co', 4, 'Casa familiar, muy segura y cerca de CECAR.', '2026-01-12'],
+  ['Pensión Doña Carmen', 'estudiante2@unipension.co', 4, 'Las reglas de horario son estrictas, pero se respeta el descanso.', '2026-02-02'],
+  ['Pensión La Terraza', 'estudiante2@unipension.co', 4, 'La terraza es ideal para estudiar en la tarde.', '2026-03-02'],
+  ['Pensión Casa Verde', 'estudiante@unipension.co', 3, 'Económica. La cocina compartida se llena a la hora del almuerzo.', '2026-02-09'],
+];
+
+async function sembrarResenas(tx) {
+  if (await tx.prepare(`SELECT valor FROM meta WHERE clave = 'semilla_resenas'`).get()) return;
+  if ((await tx.prepare('SELECT COUNT(*) AS n FROM resenas').get()).n === 0) {
+    for (const [pension, correo, estrellas, comentario, ingreso] of RESENAS_DEMO) {
+      const fila = await tx.prepare(`SELECT p.id AS pension_id, h.id AS habitacion_id, h.tarifa, p.deposito,
+          (SELECT id FROM usuarios WHERE correo = ?) AS estudiante_id
+        FROM pensiones p JOIN habitaciones h ON h.pension_id = p.id
+        WHERE p.nombre = ? ORDER BY h.id LIMIT 1`).get(correo, pension);
+      if (!fila?.estudiante_id) continue;
+      // Estadía de 4 meses ya terminada; la habitación no cambia de estado (los cupos actuales se conservan)
+      const { lastInsertRowid: reservaId } = await tx.prepare(`INSERT INTO reservas
+        (habitacion_id, estudiante_id, fecha_ingreso, meses, valor_total, estado, creado_en)
+        VALUES (?,?,?,4,?,'Finalizada',?)`).run(fila.habitacion_id, fila.estudiante_id, ingreso,
+        fila.tarifa * 4 + fila.deposito, `${ingreso} 09:00:00`);
+      await tx.prepare(`INSERT INTO resenas (pension_id, estudiante_id, reserva_id, estrellas, comentario, creado_en)
+        VALUES (?,?,?,?,?,?)`).run(fila.pension_id, fila.estudiante_id, reservaId, estrellas, comentario,
+        `${ingreso.slice(0, 5)}0${Number(ingreso.slice(5, 7)) + 4}-15 18:00:00`);
+    }
+  }
+  await tx.prepare(`INSERT INTO meta (clave, valor) VALUES ('semilla_resenas', ?)`).run(new Date().toISOString());
+}
+
 // ---------------------- INICIALIZACIÓN ----------------------
 // Si la base ya está en la versión actual solo cuesta una consulta (importante en arranques en frío de Vercel)
 async function inicializar() {
@@ -362,6 +403,7 @@ async function inicializar() {
     await sembrarBase(tx);
     await sembrarPrototipo(tx);
     await actualizarFotosDemo(tx);
+    await sembrarResenas(tx);
     await tx.prepare(`INSERT INTO meta (clave, valor) VALUES ('esquema', ?)
       ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`).run(VERSION_ESQUEMA);
   });

@@ -34,7 +34,7 @@ export const cop = (v) => '$' + Number(v || 0).toLocaleString('es-CO');
 export const estrellas = (c) =>
   c ? '★'.repeat(Math.round(c)) + '☆'.repeat(5 - Math.round(c)) + ` ${String(c).replace('.', ',')}` : 'Sin calificaciones';
 export const km = (d) => Number(d).toFixed(1).replace('.', ',');
-export const cuposTexto = (n) => `${n} ${n === 1 ? 'cupo disponible' : 'cupos disponibles'}`;
+export const cuposTexto = (n) => (n > 0 ? `${n} ${n === 1 ? 'cupo disponible' : 'cupos disponibles'}` : 'Sin cupos por ahora');
 export const fecha = (t) => (t ? new Date(t.replace(' ', 'T')).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 export const primerNombre = (n) => String(n || '').split(' ')[0];
 

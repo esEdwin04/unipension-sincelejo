@@ -9,8 +9,12 @@ const db = require('../db');
 const { requiereRol } = require('../middleware/auth');
 const P = require('../utils/pensiones');
 const { normalizarCelular } = require('../utils/validacion');
+const { conVencimientosAlDia } = require('../utils/vencimientos');
 const router = express.Router();
 const { AHORA } = db;
+
+// Antes de mostrar cupos se liberan las reservas vencidas (30 min sin pagar, 48 h sin respuesta)
+router.use((req, res, next) => (req.method === 'GET' || req.path.endsWith('/contacto') ? conVencimientosAlDia(req, res, next) : next()));
 
 const MOTIVOS_REPORTE = ['Información desactualizada', 'Precio o condiciones incorrectas', 'Sin cupos disponibles',
   'Ubicación incorrecta', 'Contenido engañoso', 'Problema de seguridad', 'Otro motivo',
@@ -85,6 +89,28 @@ router.get('/', async (req, res) => {
                    : (a, b) => String(b.creado_en).localeCompare(String(a.creado_en)) || b.id - a.id);
   lista.sort((a, b) => Number(b.destacado) - Number(a.destacado) || criterio(a, b));
   res.json(lista); // Si está vacío, el frontend muestra "Sin resultados…" (criterio HU-04 esc. 3)
+});
+
+// GET /api/pensiones/mejor-valoradas?limite=6 → sección «Mejor valoradas» (HU-10)
+// Solo pensiones verificadas con reseñas publicadas. Orden: promedio (1 decimal), luego cantidad de
+// reseñas (a igual promedio pesa más la opinión de más estudiantes). Incluye las que hoy no tienen
+// cupos para que el estudiante las conozca; la tarjeta lo indica.
+router.get('/mejor-valoradas', async (req, res) => {
+  const limite = Math.min(Math.max(parseInt(req.query.limite, 10) || 6, 1), 12);
+  const lista = await db.prepare(`
+    SELECT p.id, p.nombre, p.barrio, p.servicios, p.tarifa_mensual, p.tipo_habitacion, p.destacado,
+           ROUND(AVG(r.estrellas), 1) AS calificacion,
+           COUNT(r.id)                AS total_resenas,
+           (SELECT COUNT(*) FROM habitaciones h WHERE h.pension_id = p.id AND h.estado = 'Libre') AS cupos,
+           COALESCE(p.miniatura, (SELECT url FROM fotos f WHERE f.pension_id = p.id ORDER BY f.id LIMIT 1)) AS foto,
+           (SELECT comentario FROM resenas r2 WHERE r2.pension_id = p.id AND r2.estado = 'Publicada'
+              AND r2.comentario <> '' ORDER BY r2.estrellas DESC, r2.creado_en DESC LIMIT 1) AS comentario_destacado
+    FROM pensiones p JOIN resenas r ON r.pension_id = p.id AND r.estado = 'Publicada'
+    WHERE p.estado = 'Verificada'
+    GROUP BY p.id
+    ORDER BY calificacion DESC, total_resenas DESC, p.nombre
+    LIMIT ?`).all(limite);
+  res.json(lista.map((p) => ({ ...p, destacado: !!p.destacado })));
 });
 
 // GET /api/pensiones/barrios  → opciones del filtro

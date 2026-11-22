@@ -223,3 +223,78 @@ test('Reserva y pago simulado siguen funcionando (HU-06, HU-07)', async () => {
   assert.equal(r.status, 200);
   assert.match(r.datos.consecutivo, /^UP-/);
 });
+
+test('Disponibilidad: reservar, cancelar, vencer y rechazar actualizan los cupos del catálogo (HU-04, HU-06, HU-09)', async () => {
+  const db = require('../backend/db');
+  const anon = cliente(), est = cliente(), prop = cliente();
+  await est.entrar('estudiante2@unipension.co', 'est123');
+  await prop.entrar('propietaria@unipension.co', 'prop123');
+  const enCatalogo = async (nombre) => (await anon.get('/pensiones')).datos.find((x) => x.nombre === nombre);
+  const manana = new Date(Date.now() + 86400e3).toISOString().slice(0, 10);
+
+  // «Pensión Casa Serena» tiene un único cupo libre
+  const antes = await enCatalogo('Pensión Casa Serena');
+  assert.equal(antes.cupos, 1);
+  const libre = (await anon.get(`/pensiones/${antes.id}`)).datos.habitaciones.find((h) => h.estado === 'Libre');
+
+  // 1. Reservar el último cupo: la habitación queda bloqueada y la pensión sale del catálogo
+  let r = await est.post('/reservas', { habitacion_id: libre.id, fecha_ingreso: manana, meses: 6 });
+  assert.equal(r.status, 201);
+  let reserva = r.datos.reserva_id;
+  assert.equal(await enCatalogo('Pensión Casa Serena'), undefined);
+  let ficha = (await anon.get(`/pensiones/${antes.id}`)).datos;
+  assert.equal(ficha.cupos, 0);
+  assert.equal(ficha.disponibilidad, 'Ocupada');
+  assert.equal(ficha.habitaciones.find((h) => h.id === libre.id).estado, 'Bloqueada');
+  // Otro estudiante ya no puede tomarla
+  const otro = cliente(); await otro.entrar('estudiante3@unipension.co', 'est123');
+  assert.equal((await otro.post('/reservas', { habitacion_id: libre.id, fecha_ingreso: manana, meses: 6 })).status, 409);
+
+  // 2. Cancelar antes de pagar: vuelve al catálogo
+  assert.equal((await est.post(`/reservas/${reserva}/cancelar`)).status, 200);
+  assert.equal((await enCatalogo('Pensión Casa Serena')).cupos, 1);
+
+  // 3. Bloqueo vencido (30 min sin pagar): el catálogo lo libera sin pasar por las rutas de reservas
+  reserva = (await est.post('/reservas', { habitacion_id: libre.id, fecha_ingreso: manana, meses: 6 })).datos.reserva_id;
+  assert.equal(await enCatalogo('Pensión Casa Serena'), undefined);
+  await db.prepare(`UPDATE reservas SET expira_en = datetime('now','-5 hours','-1 minutes') WHERE id = ?`).run(reserva);
+  assert.equal((await enCatalogo('Pensión Casa Serena'))?.cupos, 1);
+  assert.equal((await anon.get(`/pensiones/${antes.id}`)).datos.habitaciones.find((h) => h.id === libre.id).estado, 'Libre');
+
+  // 4. Pagada → ocupada; el propietario la rechaza → libre otra vez
+  reserva = (await est.post('/reservas', { habitacion_id: libre.id, fecha_ingreso: manana, meses: 6 })).datos.reserva_id;
+  assert.equal((await est.post(`/reservas/${reserva}/pagar`, { medio: 'PSE', simular: 'aprobado' })).status, 200);
+  ficha = (await anon.get(`/pensiones/${antes.id}`)).datos;
+  assert.equal(ficha.habitaciones.find((h) => h.id === libre.id).estado, 'Ocupada');
+  assert.equal((await prop.get('/pensiones/mias')).datos.find((x) => x.id === antes.id).cupos, 0);
+  assert.equal((await prop.post(`/reservas/${reserva}/responder`, { decision: 'rechazar', motivo: 'Prueba' })).status, 200);
+  assert.equal((await enCatalogo('Pensión Casa Serena')).cupos, 1);
+});
+
+test('Mejor valoradas: promedio, cantidad de reseñas, orden y moderación (HU-10)', async () => {
+  const anon = cliente(), prop = cliente();
+  let r = await anon.get('/pensiones/mejor-valoradas?limite=12');
+  assert.equal(r.status, 200);
+  const lista = r.datos;
+  assert.ok(lista.length >= 6);
+  // Orden: promedio descendente y, a igual promedio, más reseñas primero
+  for (let i = 1; i < lista.length; i++) {
+    const [a, b] = [lista[i - 1], lista[i]];
+    assert.ok(a.calificacion > b.calificacion || (a.calificacion === b.calificacion && a.total_resenas >= b.total_resenas));
+  }
+  const luz = lista.find((p) => p.nombre === 'Pensión Luz del Caribe');
+  assert.deepEqual([luz.calificacion, luz.total_resenas], [4.7, 3]);
+  assert.match(luz.foto, /^\/img\/pensiones\//);
+  assert.ok(luz.comentario_destacado.length > 10);
+  assert.equal((await anon.get('/pensiones/mejor-valoradas?limite=2')).datos.length, 2);
+  // La ficha muestra las mismas reseñas
+  assert.equal((await anon.get(`/pensiones/${luz.id}`)).datos.resenas.length, 3);
+
+  // Una reseña reportada por el propietario deja de contar: La Terraza tenía una sola
+  const terraza = lista.find((p) => p.nombre === 'Pensión La Terraza');
+  const resena = (await anon.get(`/pensiones/${terraza.id}`)).datos.resenas[0];
+  await prop.entrar('propietaria@unipension.co', 'prop123');
+  assert.equal((await prop.post(`/resenas/${resena.id}/reportar`)).status, 200);
+  r = await anon.get('/pensiones/mejor-valoradas?limite=12');
+  assert.equal(r.datos.find((p) => p.nombre === 'Pensión La Terraza'), undefined);
+});
