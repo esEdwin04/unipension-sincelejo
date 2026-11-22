@@ -2,11 +2,18 @@
 // Auditoría (HU-12, HU-03, HU-10): funciones del panel administrativo existente
 // que no están en el prototipo y se conservan: indicadores, trazabilidad con
 // exportación CSV, ocupación por barrio, moderación de reseñas y bitácora.
+// F2 (HU-08 esc. 3 y 5): reenvío y anulación de comprobantes desde la trazabilidad.
 // =============================================================
 import { useEffect, useState } from 'react';
 import { API, cop, estrellas, fecha } from '../../api.js';
 import { useSesion } from '../../App.jsx';
-import { Aviso, Campo, Cargando, Chip, TituloPagina } from '../../componentes/ui.jsx';
+import { Aviso, Campo, Cargando, Chip, Dialogo, TituloPagina } from '../../componentes/ui.jsx';
+
+const MIN_MOTIVO = 10;
+// Endpoints de la actividad B4 (Jesús Villalba). Si aún no existen, el servidor responde 404
+// y la interfaz lo explica en lugar de mostrar un error genérico.
+const PENDIENTE_B4 = 'Esta acción todavía no está disponible en el servidor (actividad B4: reenvío y anulación de comprobantes).';
+const mensajeError = (err) => (err.status === 404 && !err.datos?.error ? PENDIENTE_B4 : err.message);
 
 export default function Auditoria() {
   const { avisar } = useSesion();
@@ -17,6 +24,8 @@ export default function Auditoria() {
   const [resenas, setResenas] = useState([]);
   const [bitacora, setBitacora] = useState([]);
   const [error, setError] = useState('');
+  const [enCurso, setEnCurso] = useState(null);   // id de la reserva con una acción en proceso
+  const [anular, setAnular] = useState(null);     // { reserva, motivo, error }
 
   async function cargar() {
     try {
@@ -37,6 +46,28 @@ export default function Auditoria() {
   async function moderar(id, decision) {
     try { const r = await API.patch(`/resenas/${id}/moderar`, { decision }); avisar(r.mensaje); cargar(); }
     catch (err) { setError(err.message); }
+  }
+
+  async function reenviar(r) {
+    setEnCurso(r.id); setError('');
+    try { const res = await API.post(`/admin/reservas/${r.id}/reenviar`); avisar(res.mensaje || `Comprobante ${r.consecutivo} reenviado a ${r.estudiante}.`); }
+    catch (err) { setError(mensajeError(err)); }
+    finally { setEnCurso(null); }
+  }
+
+  async function confirmarAnulacion(e) {
+    e.preventDefault();
+    const motivo = anular.motivo.trim();
+    if (motivo.length < MIN_MOTIVO) return setAnular({ ...anular, error: `Explica el motivo de la anulación (mínimo ${MIN_MOTIVO} caracteres).` });
+    const r = anular.reserva;
+    setEnCurso(r.id);
+    try {
+      const res = await API.post(`/admin/reservas/${r.id}/anular`, { motivo });
+      setAnular(null);
+      avisar(res.mensaje || `Comprobante ${r.consecutivo} anulado.`);
+      consultar();
+    } catch (err) { setAnular({ ...anular, error: err.campos?.motivo || mensajeError(err) }); }
+    finally { setEnCurso(null); }
   }
 
   if (!datos) return <main className="contenido">{error ? <Aviso tipo="error">{error}</Aviso> : <Cargando />}</main>;
@@ -69,20 +100,49 @@ export default function Auditoria() {
           </form>
           <div className="tabla-env">
             <table>
-              <thead><tr><th>#</th><th>Pensión</th><th>Propietario</th><th>Estudiante</th><th>Ingreso</th><th>Valor</th><th>Estado</th><th>Comprobante</th></tr></thead>
+              <thead><tr><th>#</th><th>Pensión</th><th>Propietario</th><th>Estudiante</th><th>Ingreso</th><th>Valor</th><th>Estado</th><th>Comprobante</th><th>Acciones</th></tr></thead>
               <tbody>
-                {traza.length === 0 && <tr><td colSpan="8">Sin registros para los filtros seleccionados.</td></tr>}
+                {traza.length === 0 && <tr><td colSpan="9">Sin registros para los filtros seleccionados.</td></tr>}
                 {traza.map((r) => (
                   <tr key={r.id}>
                     <td>{r.id}</td><td>{r.pension}<br /><small>{r.barrio}</small></td><td>{r.propietario}</td><td>{r.estudiante}</td>
                     <td>{r.fecha_ingreso}</td><td>{cop(r.valor_total)}</td><td><Chip clase={r.estado.split(' ')[0]}>{r.estado}</Chip></td>
                     <td>{r.consecutivo ? <a className="btn-link" href={`/api/reservas/${r.id}/comprobante`}>{r.consecutivo}</a> : '—'}</td>
+                    <td>{r.consecutivo ? (
+                      <div className="celda-acciones">
+                        <button className="btn sec chico" disabled={enCurso === r.id} onClick={() => reenviar(r)}
+                                aria-label={`Reenviar comprobante ${r.consecutivo} a ${r.estudiante}`}>
+                          {enCurso === r.id && !anular ? 'Enviando…' : 'Reenviar comprobante'}
+                        </button>
+                        <button className="btn chico peligro" disabled={enCurso === r.id}
+                                onClick={() => setAnular({ reserva: r, motivo: '', error: '' })}
+                                aria-label={`Anular comprobante ${r.consecutivo}`}>Anular</button>
+                      </div>
+                    ) : '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </section>
+      )}
+
+      {anular && (
+        <Dialogo titulo={`Anular comprobante ${anular.reserva.consecutivo}`} cerrar={() => setAnular(null)}>
+          <form onSubmit={confirmarAnulacion}>
+            <p className="muted" style={{ marginBottom: 12 }}>
+              Reserva #{anular.reserva.id} · {anular.reserva.pension} · {anular.reserva.estudiante} · {cop(anular.reserva.valor_total)}
+            </p>
+            <Campo etiqueta="Motivo de la anulación *" error={anular.error}>
+              <textarea value={anular.motivo} maxLength={500} autoFocus
+                        onChange={(e) => setAnular({ ...anular, motivo: e.target.value, error: '' })} />
+            </Campo>
+            <Aviso tipo="alerta">El comprobante quedará anulado y el motivo se guardará en la trazabilidad. Esta acción no se puede deshacer.</Aviso>
+            <button className="btn ancho peligro" disabled={enCurso === anular.reserva.id}>
+              {enCurso === anular.reserva.id ? 'Anulando…' : 'Confirmar anulación'}
+            </button>
+          </form>
+        </Dialogo>
       )}
 
       {pestana === 'ocupacion' && (
