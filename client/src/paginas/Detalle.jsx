@@ -61,16 +61,34 @@ export default function Detalle() {
   const total = hab ? hab.tarifa * (+reserva.meses || 0) + p.deposito : 0;
   const hoy = new Date().toISOString().slice(0, 10);
 
-  async function contactar() {
+  // Contactar: el estudiante escribe su mensaje y se abre su WhatsApp en el chat del arrendador
+  function contactar() {
     if (!usuario) return nav('/ingresar');
+    const nombre = String(usuario.nombre || '').split(' ')[0];
+    setContacto({
+      texto: `Hola, soy ${nombre}. Vi el anuncio «${p.nombre}» en UniPensión y quisiera más información sobre los cupos disponibles.`,
+      error: '', enviado: null,
+    });
+    setDialogo('contacto');
+  }
+
+  async function enviarContacto(e) {
+    e.preventDefault();
+    const texto = contacto.texto.trim();
+    if (texto.length < 10) return setContacto({ ...contacto, error: 'Escribe un mensaje de al menos 10 caracteres.' });
+    // La pestaña se abre dentro del clic (los navegadores bloquean ventanas abiertas después de esperar
+    // al servidor) y se redirige a WhatsApp cuando llega el enlace con el número del arrendador.
+    const ventana = p.contacto?.whatsapp ? window.open('', '_blank') : null;
     setOcupado(true);
     try {
-      const r = await API.post(`/pensiones/${p.id}/contacto`);
-      setContacto(r);
-      if (r.url) window.open(r.url, '_blank', 'noopener,noreferrer');
-      setDialogo('contacto');
-    } catch (e) { avisar(e.message); }
-    finally { setOcupado(false); }
+      const r = await API.post(`/pensiones/${p.id}/contacto`, { mensaje: texto });
+      if (r.url && ventana) { ventana.opener = null; ventana.location.href = r.url; }
+      else ventana?.close();
+      setContacto({ ...contacto, error: '', enviado: r });
+    } catch (err) {
+      ventana?.close();
+      setContacto({ ...contacto, error: err.campos?.mensaje || err.message });
+    } finally { setOcupado(false); }
   }
 
   async function enviarReporte(e) {
@@ -278,14 +296,34 @@ export default function Detalle() {
       {visor && <div className="visor" onClick={() => setVisor(false)} role="dialog" aria-label="Vista ampliada"><img src={p.fotos[foto]} alt={`Fotografía ampliada de ${p.nombre}`} /></div>}
 
       {dialogo === 'contacto' && contacto && (
-        <Dialogo titulo={contacto.url ? 'WhatsApp abierto' : 'Vista previa de WhatsApp'} cerrar={() => setDialogo(null)}>
-          <Aviso>{contacto.url
-            ? 'Se registró la apertura del contacto, no el envío ni la recepción del mensaje.'
-            : 'El propietario todavía no autorizó un número de WhatsApp. Este es el mensaje que se enviaría.'}</Aviso>
-          <p className="mensaje-wa">{contacto.mensaje}</p>
-          {contacto.url && <a className="btn sec ancho" href={contacto.url} target="_blank" rel="noopener noreferrer" style={{ marginBottom: 10 }}>Abrir WhatsApp de nuevo</a>}
-          <p className="fine">Contactar no reserva el cupo. Para apartarlo usa «Reserva tu cupo».</p>
-          <button className="btn ancho" style={{ marginTop: 14 }} onClick={() => setDialogo(null)}>Entendido</button>
+        <Dialogo titulo={`Escribir a ${p.contacto?.nombre?.split(' ')[0] || 'el arrendador'} por WhatsApp`} cerrar={() => setDialogo(null)}>
+          {!contacto.enviado ? (
+            <form onSubmit={enviarContacto}>
+              {!p.contacto?.whatsapp && (
+                <Aviso tipo="alerta">El arrendador todavía no ha vinculado su número de WhatsApp. Puedes preparar el mensaje,
+                  pero no se abrirá WhatsApp: mientras tanto, usa «Reserva tu cupo».</Aviso>)}
+              <Campo etiqueta="Tu mensaje" error={contacto.error}>
+                <textarea rows={5} maxLength={1000} value={contacto.texto} autoFocus
+                          onChange={(e) => setContacto({ ...contacto, texto: e.target.value, error: '' })} />
+              </Campo>
+              <p className="fine">Se agrega el enlace a este anuncio. El mensaje sale desde tu WhatsApp y el arrendador te responde
+                allí. Contactar no reserva el cupo.</p>
+              <button className="btn ancho" style={{ marginTop: 12 }} disabled={ocupado}>
+                <Icono nombre="mensaje" tam={20} />{ocupado ? 'Abriendo WhatsApp…' : p.contacto?.whatsapp ? 'Enviar por WhatsApp' : 'Ver vista previa'}
+              </button>
+            </form>
+          ) : (
+            <>
+              <Aviso tipo={contacto.enviado.url ? 'ok' : ''} role="status">{contacto.enviado.url
+                ? `Abrimos WhatsApp con el chat de ${contacto.enviado.arrendador || 'el arrendador'} y tu mensaje listo. Toca «Enviar» en WhatsApp para que le llegue.`
+                : 'El arrendador no ha vinculado su WhatsApp: este es el mensaje que recibiría.'}</Aviso>
+              <p className="mensaje-wa">{contacto.enviado.mensaje}</p>
+              {contacto.enviado.url && (
+                <a className="btn sec ancho" href={contacto.enviado.url} target="_blank" rel="noopener noreferrer" style={{ marginBottom: 10 }}>
+                  ¿No se abrió? Abrir WhatsApp</a>)}
+              <button className="btn ancho" style={{ marginTop: 6 }} onClick={() => setDialogo(null)}>Listo</button>
+            </>
+          )}
         </Dialogo>
       )}
 

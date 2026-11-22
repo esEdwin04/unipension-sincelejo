@@ -219,19 +219,32 @@ router.get('/:id', async (req, res, next) => {
 });
 
 // ---------- CONTACTO POR WHATSAPP ----------
-// POST /api/pensiones/:id/contacto → registra la apertura y devuelve el enlace wa.me (o una vista previa)
+// El estudiante escribe su mensaje en la ficha y se abre SU WhatsApp en el chat del arrendador
+// con el texto listo (enlace oficial wa.me). El número del arrendador nunca se publica en la ficha:
+// solo viaja en esta respuesta, a un estudiante con sesión, si el arrendador lo autorizó.
+const MAX_MENSAJE_CONTACTO = 1000;
+const mensajeSugerido = (pension, estudiante) =>
+  `Hola, soy ${String(estudiante || '').split(' ')[0] || 'estudiante'}. Vi el anuncio «${pension}» en UniPensión y quisiera más información sobre los cupos disponibles.`;
+
+// POST /api/pensiones/:id/contacto { mensaje? } → registra el contacto y devuelve el enlace de WhatsApp
 router.post('/:id/contacto', requiereRol('estudiante'), async (req, res) => {
-  const p = await db.prepare(`SELECT p.*, u.telefono, u.whatsapp_habilitado FROM pensiones p
+  const p = await db.prepare(`SELECT p.*, u.nombre AS arrendador, u.telefono, u.whatsapp_habilitado FROM pensiones p
                               JOIN usuarios u ON u.id = p.propietario_id WHERE p.id = ?`).get(+req.params.id);
   if (!p || !P.visible(p, (await P.ocupacion(p.id)).cupos))
     return res.status(409).json({ error: 'La pensión no está disponible para contacto.' });
-  const mensaje = `Hola, vi el anuncio «${p.nombre}» en UniPensión y quisiera conocer más información sobre los cupos disponibles.`;
+  const escrito = typeof req.body?.mensaje === 'string' ? req.body.mensaje.trim() : '';
+  if (escrito.length > MAX_MENSAJE_CONTACTO)
+    return res.status(400).json({ error: `El mensaje no puede superar ${MAX_MENSAJE_CONTACTO} caracteres.`, campos: { mensaje: 'Mensaje demasiado largo.' } });
+  // El enlace al anuncio le permite al arrendador saber por cuál de sus pensiones le escriben
+  const enlace = `${req.protocol}://${req.get('host')}/pension/${p.id}`;
+  const mensaje = `${escrito || mensajeSugerido(p.nombre, req.session.usuario.nombre)}\n\nAnuncio en UniPensión: ${enlace}`;
   const celular = normalizarCelular(p.telefono); // los registros antiguos guardan el número sin +57
   const habilitado = !!(p.whatsapp_habilitado && celular);
   await db.prepare('INSERT INTO contactos (pension_id, estudiante_id, tipo) VALUES (?,?,?)')
     .run(p.id, req.session.usuario.id, habilitado ? 'whatsapp' : 'vista_previa');
   res.json({
     mensaje,
+    arrendador: String(p.arrendador || '').split(' ')[0],
     url: habilitado ? `https://wa.me/${celular.slice(1)}?text=${encodeURIComponent(mensaje)}` : null,
   });
 });

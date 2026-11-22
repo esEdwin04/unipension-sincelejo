@@ -160,6 +160,21 @@ test('Contacto por WhatsApp: vista previa si el número no está habilitado', as
   await prop.put('/auth/perfil', { whatsapp_habilitado: true });
   r = await est.post(`/pensiones/${lista[0].id}/contacto`);
   assert.match(r.datos.url, /^https:\/\/wa\.me\/573011111111\?text=/);
+  // Mensaje escrito por el estudiante: llega tal cual, con el enlace al anuncio
+  r = await est.post(`/pensiones/${lista[0].id}/contacto`, { mensaje: '  ¿Aceptan estudiantes de primer semestre?  ' });
+  assert.equal(r.status, 200);
+  assert.equal(r.datos.arrendador, 'Carmen');
+  const [texto, enlace] = r.datos.mensaje.split('\n\nAnuncio en UniPensión: ');
+  assert.equal(texto, '¿Aceptan estudiantes de primer semestre?');
+  assert.equal(enlace, `${base.replace(/\/api$/, '')}/pension/${lista[0].id}`);
+  assert.equal(decodeURIComponent(r.datos.url.split('?text=')[1]), r.datos.mensaje);
+  // Sin texto se usa el mensaje sugerido con el nombre del estudiante
+  r = await est.post(`/pensiones/${lista[0].id}/contacto`, {});
+  assert.match(r.datos.mensaje, /^Hola, soy Luis\. Vi el anuncio «/);
+  // Límite de longitud y solo estudiantes con sesión
+  assert.equal((await est.post(`/pensiones/${lista[0].id}/contacto`, { mensaje: 'x'.repeat(1001) })).status, 400);
+  assert.equal((await prop.post(`/pensiones/${lista[0].id}/contacto`, { mensaje: 'Hola' })).status, 403);
+  assert.equal((await cliente().post(`/pensiones/${lista[0].id}/contacto`, { mensaje: 'Hola' })).status, 401);
 });
 
 test('Reportes: uno activo por estudiante y ocultamiento automático con tres estudiantes', async () => {
