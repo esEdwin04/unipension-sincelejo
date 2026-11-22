@@ -8,6 +8,7 @@ const { requiereRol } = require('../middleware/auth');
 const router = express.Router();
 
 router.use(requiereRol('administrador'));
+router.use(require('../utils/vencimientos').conVencimientosAlDia); // indicadores y ocupación al día
 
 // GET /api/admin/indicadores — tablero con KPIs y ocupación por barrio
 router.get('/indicadores', async (_req, res) => {

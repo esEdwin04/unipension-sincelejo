@@ -59,7 +59,9 @@ export default function Detalle() {
   const libres = p.habitaciones.filter((h) => h.estado === 'Libre');
   const hab = p.habitaciones.find((h) => h.id === +reserva.habitacion_id);
   const total = hab ? hab.tarifa * (+reserva.meses || 0) + p.deposito : 0;
-  const hoy = new Date().toISOString().slice(0, 10);
+  // Fecha local (toISOString usa UTC: en Colombia, después de las 7 p. m. daría el día siguiente)
+  const ahora = new Date();
+  const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
 
   // Contactar: el estudiante escribe su mensaje y se abre su WhatsApp en el chat del arrendador
   function contactar() {
@@ -113,6 +115,8 @@ export default function Detalle() {
       if (err.datos?.similares?.length)
         m += '. Habitaciones similares disponibles: ' + err.datos.similares.map((s) => `${s.pension} (${s.codigo}, ${cop(s.tarifa)})`).join(' · ');
       setMsjReserva({ t: 'error', m });
+      // Otro estudiante tomó el cupo: se recargan los cupos para no ofrecer una habitación ocupada
+      if (err.status === 409) cargar();
     }
   }
 

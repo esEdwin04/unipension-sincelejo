@@ -8,37 +8,14 @@ const express = require('express');
 const db = require('../db');
 const { requiereRol, requiereSesion } = require('../middleware/auth');
 const { generarComprobantePDF } = require('../utils/pdf');
+const { conVencimientosAlDia } = require('../utils/vencimientos');
 const router = express.Router();
-const { AHORA } = db;
 
 const notificar = (cx, usuarioId, mensaje) =>
   cx.prepare('INSERT INTO notificaciones (usuario_id,mensaje) VALUES (?,?)').run(usuarioId, mensaje);
 
-// Libera bloqueos vencidos (30 min sin pagar) y solicitudes sin respuesta (48 h) — HU-07 esc.3 y HU-09 esc.3
-async function liberarVencidas() {
-  // Consulta previa sin transacción: casi siempre no hay nada que liberar
-  const hay = await db.prepare(`SELECT 1 FROM reservas
-    WHERE (estado = 'Pendiente de pago' AND expira_en < ${AHORA})
-       OR (estado = 'Pagada' AND responder_antes < ${AHORA}) LIMIT 1`).get();
-  if (!hay) return;
-  await db.transaction(async (tx) => {
-    const vencidasPago = await tx.prepare(`SELECT * FROM reservas
-      WHERE estado = 'Pendiente de pago' AND expira_en < ${AHORA}`).all();
-    for (const r of vencidasPago) {
-      await tx.prepare(`UPDATE reservas SET estado='Cancelada' WHERE id=?`).run(r.id);
-      await tx.prepare(`UPDATE habitaciones SET estado='Libre' WHERE id=?`).run(r.habitacion_id);
-    }
-    const sinRespuesta = await tx.prepare(`SELECT * FROM reservas
-      WHERE estado = 'Pagada' AND responder_antes < ${AHORA}`).all();
-    for (const r of sinRespuesta) {
-      await tx.prepare(`UPDATE reservas SET estado='Cancelada' WHERE id=?`).run(r.id);
-      await tx.prepare(`UPDATE habitaciones SET estado='Libre' WHERE id=?`).run(r.habitacion_id);
-      await tx.prepare(`UPDATE pagos SET estado='Revertido' WHERE reserva_id=?`).run(r.id);
-      await notificar(tx, r.estudiante_id, `Su solicitud #${r.id} fue cancelada por falta de respuesta del propietario (48 h). El pago será revertido.`);
-    }
-  });
-}
-router.use(async (_req, _res, next) => { await liberarVencidas(); next(); });
+// Vencimientos de 30 min y 48 h (backend/utils/vencimientos.js)
+router.use(conVencimientosAlDia);
 
 // ---------- CREAR SOLICITUD (HU-06) ----------
 router.post('/', requiereRol('estudiante'), async (req, res) => {
