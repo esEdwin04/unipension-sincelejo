@@ -1,0 +1,25 @@
+# Integración continua: ejecuta las pruebas del API y compila el frontend
+# en cada Pull Request hacia main y en cada push a main.
+name: Pruebas
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Instalar dependencias del backend
+        run: npm ci
+      - name: Pruebas automáticas del API
+        run: npm test
+      - name: Compilar el frontend
+        run: npm run build
