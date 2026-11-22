@@ -1,0 +1,269 @@
+/* =============================================================
+   UniPensión — Capa de marca v0.7 «Natural»
+   Se carga después de estilos.css y redefine colores, tipografía y superficies.
+
+   Paleta (solo estos seis tonos y sus transparencias):
+     #253628 bosque profundo · #49654C bosque · #8AA989 salvia
+     #C0CEB2 pistacho · #E3E6DA niebla · #EBEBE9 lino
+   Reglas de uso medidas (WCAG 2.2 AA):
+   · Texto sobre fondos claros: solo #253628 (10,7:1) y #49654C (5,4:1).
+   · #8AA989 y #C0CEB2 nunca como texto sobre claro (2,2:1): son fondos, bordes y decoración,
+     o texto sobre #253628 (5,0:1 y 7,8:1).
+   · Botones: blanco sobre #49654C (6,5:1) y sobre #253628 (12,8:1).
+   Psicología del color: el verde comunica naturaleza, calma, hogar y confianza; los tonos claros
+   dan sensación de espacio limpio y ordenado (lo que un estudiante busca en una pensión).
+
+   Liquid glass: superficies translúcidas con desenfoque y saturación, borde de luz y brillo
+   diagonal, sobre fondos con manchas de verde que se mueven despacio.
+   ============================================================= */
+:root{
+  --lino:#ebebe9; --niebla-clara:#e3e6da; --pistacho:#c0ceb2; --salvia:#8aa989; --bosque-medio:#49654c; --bosque-profundo:#253628;
+  --papel:#ebebe9;   --papel-2:#e3e6da;   --superficie:#f6f6f3; --linea:#d6dccb;
+  --tinta:#253628;   --tinta-2:#3a4d3d;   --niebla:#55665a;
+  --bosque:#253628;  --bosque-2:#2f4433;  --bosque-3:#49654c;
+  --violeta:#49654c; --violeta-2:#3c5640;                          /* nombre histórico: color de acción */
+  --menta:#8aa989;   --menta-suave:#e3e6da; --ok:#49654c;
+  --coral:#49654c;   --coral-suave:#e3e6da; --coral-texto:#253628;
+  --sol:#c0ceb2;     --sol-suave:#e3e6da;   --alerta:#253628;
+  --error:#a33a2a;   --error-suave:#f3e4df;                         /* errores: único tono fuera de la paleta, por accesibilidad */
+  --noche:#253628;
+  --firma:linear-gradient(120deg,#253628 0%,#49654c 55%,#8aa989 100%);
+  --sombra:0 1px 2px rgba(37,54,40,.06),0 8px 24px -12px rgba(37,54,40,.22);
+  --sombra-2:0 2px 6px rgba(37,54,40,.06),0 28px 56px -20px rgba(37,54,40,.38);
+  --serif:'Bricolage Grotesque','Plus Jakarta Sans',system-ui,sans-serif;
+}
+
+/* Fondo: lino con manchas muy suaves de salvia y pistacho (el vidrio claro necesita algo detrás) */
+body{background:
+  radial-gradient(42rem 30rem at 100% -5%,rgba(192,206,178,.55),transparent 60%),
+  radial-gradient(40rem 32rem at -10% 30%,rgba(138,169,137,.28),transparent 60%),
+  radial-gradient(36rem 28rem at 80% 100%,rgba(227,230,218,.9),transparent 60%),
+  var(--lino);background-attachment:fixed}
+::selection{background:var(--pistacho);color:var(--bosque-profundo)}
+:focus-visible{outline-color:var(--bosque-medio)}
+
+/* ---------- Tipografía ---------- */
+h1,h2,h3,.serif{font-family:var(--serif);font-weight:700;letter-spacing:-.015em;word-spacing:0;font-variation-settings:'opsz' 72;color:var(--bosque-profundo)}
+.portada-texto h1,.cabeza-seccion h2,.titulo-pagina h1,.pp-cabeza h1,.det-titulo+h1,.contenido>h1,.bloque h2,.pp-titulo h2,
+.tg-cuerpo h2,.dialogo header h2,.hero-panel h2,.pasos h2,.invita h2,.planes h3,.form-editor>h2,.perfil-hero h2{font-weight:700;letter-spacing:-.02em}
+.tp-titulo{font-family:var(--serif);font-weight:700;letter-spacing:-.02em;font-size:1.3rem}
+.eyebrow{color:var(--bosque-medio)}
+/* Firma: degradado bosque → salvia en palabras clave y logotipo */
+.portada-texto h1 em,.marca strong em,.marca-app b em,.pie-id b em{font-style:normal;background:var(--firma);-webkit-background-clip:text;background-clip:text;color:transparent}
+.portada-texto h1 em{padding-right:.04em}
+.marca-app b,.marca strong{font-weight:800;letter-spacing:-.035em}
+.pie-id b em{background:linear-gradient(120deg,#e3e6da,#c0ceb2);-webkit-background-clip:text;background-clip:text}
+
+/* ---------- Botones ---------- */
+.btn{background:linear-gradient(135deg,var(--bosque-medio),var(--bosque-profundo));border-color:transparent;color:#fff;
+  box-shadow:0 8px 20px -10px rgba(37,54,40,.7),inset 0 1px 0 rgba(255,255,255,.18)}
+.btn:hover:not(:disabled){background:linear-gradient(135deg,#3f5a43,#1d2b20);border-color:transparent;box-shadow:0 14px 28px -12px rgba(37,54,40,.8),inset 0 1px 0 rgba(255,255,255,.18)}
+.btn.sec{background:rgba(246,246,243,.78);color:var(--bosque-profundo);border-color:var(--linea);box-shadow:none;backdrop-filter:blur(8px)}
+.btn.sec:hover:not(:disabled){background:#fff;border-color:var(--salvia)}
+.btn.claro{background:var(--lino);color:var(--bosque-profundo);border-color:var(--lino);box-shadow:0 10px 24px -12px rgba(0,0,0,.4)}
+.btn.peligro{background:var(--error);border-color:var(--error);box-shadow:none}
+.btn-link,.btn-link.centrado b,.fila-form .btn-link,.clave button{color:var(--bosque-medio)}
+input,select,textarea,.clave{background:var(--superficie)}
+input:focus,select:focus,textarea:focus,.clave:focus-within{border-color:var(--bosque-medio);box-shadow:0 0 0 4px rgba(73,101,76,.16)}
+input[type=checkbox],input[type=radio]{accent-color:var(--bosque-medio)}
+.checks .check:has(input:checked){border-color:var(--bosque-medio);background:var(--niebla-clara)}
+
+/* ---------- Estados y chips ---------- */
+.chip{background:var(--niebla-clara);color:var(--tinta-2)}
+.chip.Verificada,.chip.Confirmada,.chip.Disponible,.chip.Resuelto{background:var(--pistacho);color:var(--bosque-profundo)}
+.chip.Pendiente,.chip.Pagada,.chip.destacado{background:var(--niebla-clara);color:var(--bosque-profundo);box-shadow:inset 0 0 0 1px var(--salvia)}
+.aviso{background:var(--niebla-clara);color:var(--tinta-2);border-color:var(--linea)}
+.aviso.ok{background:var(--pistacho);color:var(--bosque-profundo);border-color:var(--salvia)}
+.aviso.alerta{background:var(--niebla-clara);color:var(--bosque-profundo);border-color:var(--salvia);border-left:4px solid var(--bosque-medio)}
+.toast{background:rgba(37,54,40,.92);backdrop-filter:blur(14px) saturate(160%);border:1px solid rgba(227,230,218,.2)}
+.giro{border-top-color:var(--bosque-medio)}
+
+/* =============================================================
+   LIQUID GLASS
+   ============================================================= */
+/* Vidrio oscuro: secciones de información sobre un bosque en movimiento */
+.hero-panel,.pasos,.pie{background:var(--bosque-profundo);color:var(--niebla-clara);isolation:isolate;position:relative;overflow:hidden}
+.hero-panel::before,.pasos::before,.pie::before{
+  content:'';position:absolute;inset:-30%;z-index:-2;border:0;border-radius:0;width:auto;height:auto;left:-30%;top:-30%;
+  background:
+    radial-gradient(30% 38% at 18% 30%,rgba(138,169,137,.9),transparent 72%),
+    radial-gradient(32% 40% at 78% 22%,rgba(192,206,178,.55),transparent 72%),
+    radial-gradient(36% 44% at 60% 80%,rgba(73,101,76,1),transparent 72%),
+    radial-gradient(28% 34% at 24% 88%,rgba(138,169,137,.6),transparent 72%);
+  filter:blur(30px);animation:bosque 24s ease-in-out infinite alternate}
+.hero-panel::after,.pasos::after,.pie::after{
+  content:'';position:absolute;inset:0;z-index:-1;border:0;width:auto;height:auto;border-radius:0;
+  background:linear-gradient(180deg,rgba(37,54,40,.15),rgba(37,54,40,.5))}
+@keyframes bosque{
+  0%{transform:translate3d(0,0,0) rotate(0deg) scale(1)}
+  50%{transform:translate3d(4%,-3%,0) rotate(8deg) scale(1.08)}
+  100%{transform:translate3d(-4%,3%,0) rotate(-6deg) scale(1.03)}}
+.hero-panel{background-image:none;padding:clamp(18px,3vw,34px)}
+.hero-panel .eyebrow,.pasos .eyebrow{color:var(--pistacho)}
+.hero-panel h2,.pasos h2{color:#fff}
+.hero-panel p{color:var(--niebla-clara)}
+
+/* El panel de vidrio: translúcido, desenfoca lo que hay detrás, borde de luz y brillo diagonal */
+.vidrio,.pasos-grid>div{
+  position:relative;overflow:hidden;
+  background:linear-gradient(135deg,rgba(235,235,233,.18),rgba(37,54,40,.34));
+  -webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);
+  border:1px solid rgba(227,230,218,.35);border-radius:24px;
+  box-shadow:inset 0 1px 0 rgba(235,235,233,.5),inset 0 -1px 0 rgba(235,235,233,.08),
+             inset 0 0 22px rgba(235,235,233,.05),0 18px 40px -18px rgba(10,20,12,.6)}
+.vidrio::before,.pasos-grid>div::after{
+  content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(120deg,rgba(235,235,233,.42) 0%,rgba(235,235,233,0) 32%,rgba(235,235,233,0) 70%,rgba(235,235,233,.1) 100%);
+  mix-blend-mode:soft-light}
+.vidrio-hero{padding:clamp(22px,3.4vw,40px);max-width:640px}
+.vidrio-hero h2{margin:10px 0}
+.vidrio-hero p{margin-bottom:20px}
+.vidrio-hero .eyebrow{color:var(--lino);opacity:.92}
+.pasos-grid>div{color:var(--niebla-clara);transition:transform .45s var(--curva),box-shadow .45s}
+.pasos-grid>div:hover{transform:translateY(-6px);box-shadow:inset 0 1px 0 rgba(235,235,233,.55),0 26px 50px -20px rgba(10,20,12,.75)}
+.pasos-grid>div::before{color:var(--pistacho);opacity:1;font-family:var(--serif);font-weight:800}
+.pasos-grid>div>span{background:rgba(235,235,233,.14);border:1px solid rgba(227,230,218,.3);color:#fff}
+.pasos-grid b{color:#fff}
+.pasos-grid p{color:var(--niebla-clara)}
+
+/* Vidrio claro: indicadores, paneles y tarjetas de información */
+.estadisticas>*,.bloque,.panel,.perfil-hero,.perfil-info span,.item-menu,.tarjeta-inst,.historial,.form-editor,.planes>div,.registro-consentimiento{
+  background:linear-gradient(135deg,rgba(246,246,243,.88),rgba(235,235,233,.6));
+  -webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);
+  border:1px solid rgba(255,255,255,.75);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 1px 2px rgba(37,54,40,.05),0 14px 34px -18px rgba(37,54,40,.3)}
+.estadisticas>*{position:relative;overflow:hidden}
+.estadisticas>*::before{content:'';position:absolute;inset:0 auto 0 0;width:4px;background:var(--firma)}
+.estadisticas b{color:var(--bosque-profundo);font-weight:800}
+.pp-indicadores .urgente,.estadisticas .urgente{background:linear-gradient(135deg,rgba(192,206,178,.95),rgba(227,230,218,.85));border-color:var(--salvia)}
+.pp-indicadores .urgente b,.pp-indicadores .urgente small{color:var(--bosque-profundo)}
+.planes>div:nth-child(2){background:linear-gradient(135deg,rgba(192,206,178,.95),rgba(227,230,218,.8));border-color:var(--salvia)}
+.planes>div:nth-child(2) h3{color:var(--bosque-profundo)}
+
+/* Cabecera y navegación: vidrio */
+.app-cabecera{background:rgba(235,235,233,.62);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%)}
+.app-cabecera.con-scroll{background:rgba(235,235,233,.85);border-bottom-color:var(--linea)}
+.nav-principal{background:rgba(246,246,243,.72);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);
+  border-color:rgba(255,255,255,.8);box-shadow:inset 0 1px 0 #fff,0 18px 40px -16px rgba(37,54,40,.45)}
+.nav-principal a{color:var(--niebla)}
+.nav-principal a.activo .ic{background:var(--pistacho)}
+.nav-principal a.activo{color:var(--bosque-profundo)}
+@media (min-width:900px){
+  .nav-principal{background:rgba(235,235,233,.55);box-shadow:none;border-color:transparent;border-bottom-color:var(--linea)}
+  .nav-principal a.activo{background:linear-gradient(135deg,var(--bosque-medio),var(--bosque-profundo));color:#fff;box-shadow:0 8px 18px -10px rgba(37,54,40,.8)}
+  .nav-principal a:hover{background:rgba(73,101,76,.1);color:var(--bosque-profundo)}
+}
+.avatar{background:var(--firma);box-shadow:0 0 0 3px var(--lino),0 0 0 4.5px var(--pistacho)}
+
+/* ---------- Portada del estudiante ---------- */
+.portada-texto .kicker{background:var(--pistacho);color:var(--bosque-profundo)}
+.portada-texto .kicker span{background:var(--bosque-medio)}
+.buscador-falso,.buscador{background:rgba(246,246,243,.85);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-color:rgba(255,255,255,.9)}
+.buscador-falso .ir,.buscador .b-ir{background:var(--firma)}
+.buscador .b-filtro{background:var(--niebla-clara)}
+.buscador .b-filtro i{background:var(--bosque-medio);border-color:var(--lino)}
+.atajos a{background:rgba(246,246,243,.78);border-color:var(--linea);color:var(--bosque-profundo)}
+.atajos a:hover{background:var(--bosque-medio);border-color:var(--bosque-medio);color:#fff}
+.cifras b{background:var(--firma);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800}
+.collage img{border-color:rgba(246,246,243,.95)}
+.collage-nota{background:rgba(246,246,243,.72);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);
+  border:1px solid rgba(255,255,255,.85);box-shadow:inset 0 1px 0 #fff,0 20px 44px -18px rgba(37,54,40,.45)}
+.collage::before{content:'';position:absolute;inset:8% 6% 4% 10%;z-index:-1;border-radius:40% 60% 55% 45%;background:var(--firma);filter:blur(50px);opacity:.35}
+.collage{isolation:isolate}
+.barrio::after{background:linear-gradient(180deg,rgba(37,54,40,0) 35%,rgba(37,54,40,.9) 100%)}
+.barrio div{background:rgba(235,235,233,.14);-webkit-backdrop-filter:blur(14px) saturate(160%);backdrop-filter:blur(14px) saturate(160%);
+  border:1px solid rgba(227,230,218,.32);border-radius:18px;padding:10px 14px;left:12px;right:12px;bottom:12px}
+.barrio small{color:var(--niebla-clara)}
+
+/* ---------- Tarjeta de pensión: confianza + escasez real ---------- */
+.tarjeta-pension{background:var(--superficie);border-color:var(--linea)}
+.tarjeta-pension:hover{box-shadow:0 2px 6px rgba(37,54,40,.06),0 30px 60px -22px rgba(37,54,40,.45)}
+.tp-foto::after{background:linear-gradient(0deg,rgba(37,54,40,.4),transparent)}
+.tp-lugar{color:var(--bosque-medio)}
+.tp-precio b{color:var(--bosque-profundo);font-weight:800;font-family:var(--serif);letter-spacing:-.03em}
+.insignia{background:rgba(246,246,243,.82);color:var(--bosque-profundo);-webkit-backdrop-filter:blur(10px) saturate(160%);backdrop-filter:blur(10px) saturate(160%);
+  border:1px solid rgba(255,255,255,.8)}
+.insignia.dest{background:var(--pistacho);color:var(--bosque-profundo);border-color:rgba(255,255,255,.6)}
+.insignia.cupos::before{background:var(--bosque-medio)}
+.insignia.escaso{background:var(--bosque-profundo);color:#fff;border-color:rgba(227,230,218,.35)}
+.insignia.escaso::before{background:var(--pistacho);animation:latido 1.4s ease-in-out infinite}
+.tp-verificada{display:inline-flex;align-items:center;gap:5px;font-size:.74rem;font-weight:700;color:var(--bosque-medio)}
+.tp-servicios span{background:var(--niebla-clara);color:var(--tinta-2)}
+.estrellas,.insignia.nota .estrellas{color:var(--bosque-medio)}
+.fav{color:var(--niebla)}
+.fav:hover,.fav.activo{color:var(--bosque-profundo)}
+.fav.con-texto{background:var(--superficie);color:var(--bosque-profundo)}
+.fav.con-texto:hover{border-color:var(--bosque-medio);color:var(--bosque-profundo)}
+.fav.con-texto.activo{background:var(--pistacho);border-color:var(--salvia);color:var(--bosque-profundo)}
+
+/* ---------- Ficha ---------- */
+.galeria-principal{box-shadow:0 30px 60px -28px rgba(37,54,40,.55)}
+.miniaturas button.activo{border-color:var(--bosque-medio)}
+.contador{background:rgba(37,54,40,.62);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(227,230,218,.25)}
+.resumen-precio .precio{font-weight:800}
+.disp{color:var(--bosque-medio)}
+.disp::before{box-shadow:0 0 0 4px rgba(138,169,137,.35)}
+.barra-fija{background:rgba(235,235,233,.75);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%)}
+.amenidades span,.extras{background:rgba(227,230,218,.75)}
+.amenidades .icono,.hechos .icono{color:var(--bosque-medio)}
+.mensaje-wa{background:var(--pistacho);color:var(--bosque-profundo)}
+
+/* ---------- Acceso ---------- */
+.bienvenida-arte::before{background:linear-gradient(180deg,rgba(37,54,40,.1) 0%,rgba(73,101,76,.35) 55%,var(--lino) 100%)}
+.bienvenida-arte .marca{background:rgba(246,246,243,.6);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);
+  border:1px solid rgba(255,255,255,.8);box-shadow:inset 0 1px 0 #fff,0 30px 60px -24px rgba(37,54,40,.6)}
+.escenario{background:var(--niebla-clara)}
+.escenario-panel{background:var(--lino)}
+.barra-sup{background:rgba(235,235,233,.9)}
+@media (min-width:900px){
+  .escenario{background:var(--bosque-profundo) url('/img/pensiones/habitacion-03.webp') center/cover no-repeat}
+  .escenario::before{background:linear-gradient(110deg,rgba(138,169,137,.3),rgba(73,101,76,.55) 55%,rgba(37,54,40,.88))}
+}
+.progreso span{background:var(--niebla-clara)}
+.progreso span.activo{background:var(--bosque-medio)}
+.progreso span.hecho{background:var(--pistacho);color:var(--bosque-profundo)}
+.tarjeta-rol{background:var(--superficie)}
+.tarjeta-rol.sel{border-color:var(--bosque-medio)}
+.tarjeta-rol.sel .radio{background:var(--bosque-medio);border-color:var(--bosque-medio)}
+.tarjeta-rol .ic{background:var(--pistacho);color:var(--bosque-profundo)}
+.demo,.politica{background:var(--superficie)}
+
+/* ---------- Pie ---------- */
+.pie{color:var(--niebla-clara)}
+.pie h3{color:var(--pistacho)}
+.pie p,.pie-id span,.pie details div{color:var(--niebla-clara)}
+.pie-id .marca{background:rgba(235,235,233,.92)}
+.pie-enlaces a{color:var(--lino)}
+.pie-legal{border-top-color:rgba(227,230,218,.2)}
+.pie-in>*:not(.pie-legal){position:relative}
+
+/* ---------- Paneles ---------- */
+.pestanas{background:rgba(227,230,218,.85);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.pestanas button.activo,.alternar button.activo{background:linear-gradient(135deg,var(--bosque-medio),var(--bosque-profundo));color:#fff}
+.alternar{background:rgba(227,230,218,.9)}
+.pasos-editor button{background:var(--linea)}
+.pasos-editor button.on{background:var(--firma)}
+.pp-plazo{background:var(--niebla-clara);color:var(--tinta-2)}
+.pp-plazo.urgente{background:var(--bosque-profundo);color:#fff}
+.titulo-form>span,.item-menu .ic{background:var(--pistacho);color:var(--bosque-profundo)}
+.perfil-hero{background-image:linear-gradient(180deg,rgba(192,206,178,.75) 0 90px,transparent 90px)}
+tbody tr:hover{background:rgba(227,230,218,.6)}
+.filtros-activos button{background:var(--pistacho);color:var(--bosque-profundo)}
+.filtros-activos button:hover{background:var(--salvia)}
+.control-destacado{background:var(--pistacho)}
+.control-destacado small{color:var(--bosque-profundo)}
+.subir:hover{border-color:var(--bosque-medio);background:var(--niebla-clara)}
+.pin-precio,.pin-cluster{background:var(--bosque-profundo)}
+.popup-pension button{background:var(--bosque-profundo)}
+.l-pension{background:var(--bosque-profundo)}.l-ref{background:var(--salvia)}
+
+/* Navegadores sin backdrop-filter: superficies sólidas legibles */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .vidrio,.pasos-grid>div{background:rgba(37,54,40,.55)}
+  .estadisticas>*,.bloque,.panel,.collage-nota,.nav-principal,.app-cabecera{background:var(--superficie)}
+}
+@media (prefers-reduced-motion:reduce){.hero-panel::before,.pasos::before,.pie::before{animation:none}}
+
+/* Degradado para TEXTO: termina en #49654C (5,4:1), nunca en salvia (2,2:1 sobre lino) */
+:root{--firma-texto:linear-gradient(120deg,#49654c 0%,#253628 85%)}
+.portada-texto h1 em,.marca strong em,.marca-app b em,.cifras b{background:var(--firma-texto);-webkit-background-clip:text;background-clip:text;color:transparent}

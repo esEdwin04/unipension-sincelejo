@@ -10,9 +10,9 @@ export function Marca({ compacta = false }) {
   return (
     <span className={`marca ${compacta ? 'compacta' : ''}`}>
       <svg viewBox="0 0 80 70" role="img" aria-label="UniPensión">
-        <path d="M10 31 40 7l30 24" fill="none" stroke="#241A6E" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M18 34v9a22 22 0 0 0 44 0v-9" fill="none" stroke="#241A6E" strokeWidth="10" strokeLinecap="round" />
-        <g fill="#FF5E3A">
+        <path d="M10 31 40 7l30 24" fill="none" stroke="#253628" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M18 34v9a22 22 0 0 0 44 0v-9" fill="none" stroke="#253628" strokeWidth="10" strokeLinecap="round" />
+        <g fill="#8AA989">
           <rect x="32" y="30" width="7" height="7" rx="1" /><rect x="42" y="30" width="7" height="7" rx="1" />
           <rect x="32" y="40" width="7" height="7" rx="1" /><rect x="42" y="40" width="7" height="7" rx="1" />
         </g>
