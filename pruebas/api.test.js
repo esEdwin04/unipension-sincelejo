@@ -19,10 +19,15 @@ before(async () => {
   await new Promise((r) => servidor.once('listening', r));
   base = `http://127.0.0.1:${servidor.address().port}/api`;
 });
-after(() => {
+after(async () => {
   servidor.close();
   require('../backend/db').close(); // en Windows no se puede borrar un archivo SQLite abierto (EPERM)
-  for (const sufijo of ['', '-wal', '-shm']) fs.rmSync(dbTemporal + sufijo, { force: true });
+  // libSQL libera el archivo un instante después de cerrar: se reintenta y, si sigue bloqueado,
+  // se deja en la carpeta temporal del sistema en lugar de marcar la prueba como fallida
+  for (const sufijo of ['', '-wal', '-shm']) {
+    try { fs.rmSync(dbTemporal + sufijo, { force: true, maxRetries: 10, retryDelay: 100 }); }
+    catch (err) { console.warn(`No se pudo borrar ${dbTemporal + sufijo}: ${err.code}`); }
+  }
 });
 
 // Cliente con cookie de sesión propia (simula un navegador por usuario)

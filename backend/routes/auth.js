@@ -16,21 +16,21 @@ const CAMPOS_PERFIL = `id, nombre, correo, telefono, rol, foto, institucion, pro
   relacion, documento, whatsapp_habilitado, consentimiento_version, consentimiento_fecha, creado_en`;
 
 const resumen = (u) => ({ id: u.id, nombre: u.nombre, rol: u.rol });
-const perfilDe = (id) => {
-  const u = db.prepare(`SELECT ${CAMPOS_PERFIL} FROM usuarios WHERE id = ?`).get(id);
+const perfilDe = async (id) => {
+  const u = await db.prepare(`SELECT ${CAMPOS_PERFIL} FROM usuarios WHERE id = ?`).get(id);
   if (u) u.whatsapp_habilitado = !!u.whatsapp_habilitado;
   return u;
 };
 
 // POST /api/auth/registro — Paso 2 del registro (el paso 1 elige el rol)
-router.post('/registro', (req, res) => {
+router.post('/registro', async (req, res) => {
   const { nombre, correo, clave, confirmar, telefono, rol, acepta_datos, institucion, documento, relacion } = req.body;
   const errores = {};
   if (!['estudiante', 'propietario'].includes(rol))
     return res.status(400).json({ error: 'El registro público no permite administradores' });
   if (!nombre || String(nombre).trim().length < 3) errores.nombre = 'Escribe tu nombre completo.';
   if (!v.correoValido(correo)) errores.correo = 'Escribe un correo válido.';
-  else if (db.prepare('SELECT id FROM usuarios WHERE lower(correo) = lower(?)').get(correo.trim()))
+  else if (await db.prepare('SELECT id FROM usuarios WHERE lower(correo) = lower(?)').get(correo.trim()))
     errores.correo = 'Ya existe una cuenta con ese correo.';
   if (!v.claveSegura(clave)) errores.clave = 'Usa al menos 8 caracteres, mayúscula, minúscula y número.';
   if (confirmar !== undefined && confirmar !== clave) errores.confirmar = 'Las contraseñas no coinciden.';
@@ -44,9 +44,9 @@ router.post('/registro', (req, res) => {
   if (Object.keys(errores).length)
     return res.status(400).json({ error: Object.values(errores)[0], campos: errores });
 
-  const r = db.prepare(`INSERT INTO usuarios (nombre, correo, clave_hash, telefono, rol, acepta_datos, institucion,
+  const r = await db.prepare(`INSERT INTO usuarios (nombre, correo, clave_hash, telefono, rol, acepta_datos, institucion,
       documento, relacion, consentimiento_version, consentimiento_fecha)
-      VALUES (?,?,?,?,?,1,?,?,?,?,datetime('now','localtime'))`)
+      VALUES (?,?,?,?,?,1,?,?,?,?,${db.AHORA})`)
     .run(nombre.trim(), correo.trim().toLowerCase(), bcrypt.hashSync(clave, 10), celular, rol,
          rol === 'estudiante' ? institucion : null, rol === 'propietario' ? documento : null,
          rol === 'propietario' ? (v.RELACIONES.includes(relacion) ? relacion : 'Propietario') : null,
@@ -56,9 +56,9 @@ router.post('/registro', (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { correo, clave } = req.body;
-  const u = db.prepare('SELECT * FROM usuarios WHERE lower(correo) = lower(?)').get(String(correo || '').trim());
+  const u = await db.prepare('SELECT * FROM usuarios WHERE lower(correo) = lower(?)').get(String(correo || '').trim());
   if (!u || !bcrypt.compareSync(clave || '', u.clave_hash))
     return res.status(401).json({ error: 'Correo o contraseña incorrectos' });
   req.session.usuario = resumen(u);
@@ -71,9 +71,9 @@ router.post('/logout', (req, res) => {
 });
 
 // GET /api/auth/yo → usuario en sesión con los datos que usa la cabecera
-router.get('/yo', (req, res) => {
+router.get('/yo', async (req, res) => {
   if (!req.session.usuario) return res.json({ usuario: null });
-  const u = perfilDe(req.session.usuario.id);
+  const u = await perfilDe(req.session.usuario.id);
   if (!u) { req.session.destroy(() => {}); return res.json({ usuario: null }); }
   res.json({ usuario: { id: u.id, nombre: u.nombre, rol: u.rol, foto: u.foto, institucion: u.institucion, relacion: u.relacion } });
 });
@@ -100,17 +100,17 @@ router.post('/recuperar', (req, res) => {
 });
 
 // ---------- PERFIL ----------
-router.get('/perfil', requiereSesion, (req, res) => res.json(perfilDe(req.session.usuario.id)));
+router.get('/perfil', requiereSesion, async (req, res) => res.json(await perfilDe(req.session.usuario.id)));
 
-router.put('/perfil', requiereSesion, (req, res) => {
-  const actual = perfilDe(req.session.usuario.id);
+router.put('/perfil', requiereSesion, async (req, res) => {
+  const actual = await perfilDe(req.session.usuario.id);
   const b = req.body;
   const errores = {};
   const nombre = b.nombre !== undefined ? String(b.nombre).trim() : actual.nombre;
   if (nombre.length < 3) errores.nombre = 'Escribe un nombre completo.';
   const correo = b.correo !== undefined ? String(b.correo).trim().toLowerCase() : actual.correo;
   if (!v.correoValido(correo) ||
-      db.prepare('SELECT id FROM usuarios WHERE lower(correo) = ? AND id <> ?').get(correo, actual.id))
+      await db.prepare('SELECT id FROM usuarios WHERE lower(correo) = ? AND id <> ?').get(correo, actual.id))
     errores.correo = 'Correo no válido o ya registrado.';
   let telefono = actual.telefono;
   if (b.telefono !== undefined) {
@@ -127,7 +127,7 @@ router.put('/perfil', requiereSesion, (req, res) => {
   if (Object.keys(errores).length) return res.status(400).json({ error: Object.values(errores)[0], campos: errores });
 
   const val = (k) => (b[k] !== undefined ? (String(b[k]).trim() || null) : actual[k]);
-  db.prepare(`UPDATE usuarios SET nombre=?, correo=?, telefono=?, foto=?, institucion=?, programa=?, nivel=?, ciudad=?,
+  await db.prepare(`UPDATE usuarios SET nombre=?, correo=?, telefono=?, foto=?, institucion=?, programa=?, nivel=?, ciudad=?,
       zona=?, bio=?, relacion=?, documento=?, whatsapp_habilitado=? WHERE id=?`)
     .run(nombre, correo, telefono, b.foto !== undefined ? (b.foto || null) : actual.foto,
          val('institucion'), val('programa'), val('nivel'), val('ciudad'), val('zona'),
@@ -136,26 +136,26 @@ router.put('/perfil', requiereSesion, (req, res) => {
          actual.rol === 'propietario' ? val('documento') : actual.documento,
          whatsapp ? 1 : 0, actual.id);
   req.session.usuario.nombre = nombre;
-  res.json({ mensaje: 'Cambios guardados.', perfil: perfilDe(actual.id) });
+  res.json({ mensaje: 'Cambios guardados.', perfil: await perfilDe(actual.id) });
 });
 
 // PUT /api/auth/clave { actual, nueva }
-router.put('/clave', requiereSesion, (req, res) => {
+router.put('/clave', requiereSesion, async (req, res) => {
   const { actual, nueva } = req.body;
-  const u = db.prepare('SELECT clave_hash FROM usuarios WHERE id = ?').get(req.session.usuario.id);
+  const u = await db.prepare('SELECT clave_hash FROM usuarios WHERE id = ?').get(req.session.usuario.id);
   if (!bcrypt.compareSync(actual || '', u.clave_hash))
     return res.status(400).json({ error: 'La contraseña actual no es correcta.', campos: { actual: 'La contraseña actual no es correcta.' } });
   if (!v.claveSegura(nueva))
     return res.status(400).json({ error: 'Mínimo 8 caracteres, mayúscula, minúscula y número.', campos: { nueva: 'Mínimo 8 caracteres, mayúscula, minúscula y número.' } });
-  db.prepare('UPDATE usuarios SET clave_hash = ? WHERE id = ?').run(bcrypt.hashSync(nueva, 10), req.session.usuario.id);
+  await db.prepare('UPDATE usuarios SET clave_hash = ? WHERE id = ?').run(bcrypt.hashSync(nueva, 10), req.session.usuario.id);
   res.json({ mensaje: 'Contraseña actualizada.' });
 });
 
 // POST /api/auth/consentimiento — registra la aceptación de la política vigente (RNF-07)
-router.post('/consentimiento', requiereSesion, (req, res) => {
-  db.prepare(`UPDATE usuarios SET acepta_datos = 1, consentimiento_version = ?, consentimiento_fecha = datetime('now','localtime')
+router.post('/consentimiento', requiereSesion, async (req, res) => {
+  await db.prepare(`UPDATE usuarios SET acepta_datos = 1, consentimiento_version = ?, consentimiento_fecha = ${db.AHORA}
               WHERE id = ?`).run(db.VERSION_POLITICA, req.session.usuario.id);
-  res.json({ mensaje: 'Aceptación de política registrada.', perfil: perfilDe(req.session.usuario.id) });
+  res.json({ mensaje: 'Aceptación de política registrada.', perfil: await perfilDe(req.session.usuario.id) });
 });
 
 module.exports = router;

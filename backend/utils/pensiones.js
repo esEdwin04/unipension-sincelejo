@@ -18,9 +18,9 @@ function distanciaKm(lat1, lng1, lat2, lng2) {
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
 }
 
-// Resumen de ocupación de una pensión
-function ocupacion(pensionId) {
-  const filas = db.prepare(`SELECT h.id, h.estado,
+// Resumen de ocupación de una pensión. `cx` es la conexión: db o una transacción en curso.
+async function ocupacion(pensionId, cx = db) {
+  const filas = await cx.prepare(`SELECT h.id, h.estado,
       EXISTS (SELECT 1 FROM reservas r WHERE r.habitacion_id = h.id AND r.estado IN ${ESTADOS_RESERVA_VIGENTE}) AS con_reserva
     FROM habitaciones h WHERE h.pension_id = ? ORDER BY h.id`).all(pensionId);
   const cupos = filas.filter((h) => h.estado === 'Libre').length;
@@ -29,43 +29,42 @@ function ocupacion(pensionId) {
 }
 
 // Fija los cupos disponibles marcando habitaciones Libre/Ocupada (sin tocar las que tienen reserva vigente)
-function fijarCupos(pensionId, cupos) {
-  const o = ocupacion(pensionId);
+async function fijarCupos(pensionId, cupos, cx = db) {
+  const o = await ocupacion(pensionId, cx);
   if (!Number.isInteger(cupos) || cupos < 0 || cupos > o.max_cupos)
     throw Object.assign(new Error(o.con_reserva
       ? `Escribe un número entero entre 0 y ${o.max_cupos}: ${o.con_reserva} habitación(es) tienen reservas vigentes.`
       : `Escribe un número entero entre 0 y ${o.capacidad}.`), { status: 400 });
   let restantes = cupos;
-  const upd = db.prepare('UPDATE habitaciones SET estado = ? WHERE id = ?');
   for (const h of o.filas.filter((f) => !f.con_reserva)) {
-    upd.run(restantes > 0 ? 'Libre' : 'Ocupada', h.id);
+    await cx.prepare('UPDATE habitaciones SET estado = ? WHERE id = ?').run(restantes > 0 ? 'Libre' : 'Ocupada', h.id);
     restantes--;
   }
 }
 
 // Ajusta la cantidad de habitaciones a la capacidad pedida y actualiza tipo y tarifa
-function sincronizarHabitaciones(pensionId, { capacidad, tipo, tarifa }) {
-  const o = ocupacion(pensionId);
+async function sincronizarHabitaciones(pensionId, { capacidad, tipo, tarifa }, cx = db) {
+  const o = await ocupacion(pensionId, cx);
   const tipoHab = tipo === 'Compartida' ? 'compartida' : 'individual';
   if (capacidad > o.capacidad) {
-    const ins = db.prepare(`INSERT INTO habitaciones (pension_id,codigo,tipo,tarifa,estado) VALUES (?,?,?,?, 'Ocupada')`);
-    for (let k = o.capacidad + 1; k <= capacidad; k++) ins.run(pensionId, `H${k}`, tipoHab, tarifa);
+    for (let k = o.capacidad + 1; k <= capacidad; k++)
+      await cx.prepare(`INSERT INTO habitaciones (pension_id,codigo,tipo,tarifa,estado) VALUES (?,?,?,?, 'Ocupada')`)
+        .run(pensionId, `H${k}`, tipoHab, tarifa);
   } else if (capacidad < o.capacidad) {
     // Solo se eliminan habitaciones que nunca han tenido reservas (preserva la trazabilidad)
-    const eliminables = db.prepare(`SELECT h.id FROM habitaciones h WHERE h.pension_id = ?
+    const eliminables = await cx.prepare(`SELECT h.id FROM habitaciones h WHERE h.pension_id = ?
       AND NOT EXISTS (SELECT 1 FROM reservas r WHERE r.habitacion_id = h.id) ORDER BY h.id DESC`).all(pensionId);
     const sobran = o.capacidad - capacidad;
     if (eliminables.length < sobran)
       throw Object.assign(new Error('No es posible reducir la capacidad: algunas habitaciones tienen historial de reservas.'), { status: 409 });
-    const del = db.prepare('DELETE FROM habitaciones WHERE id = ?');
-    eliminables.slice(0, sobran).forEach((h) => del.run(h.id));
+    for (const h of eliminables.slice(0, sobran)) await cx.prepare('DELETE FROM habitaciones WHERE id = ?').run(h.id);
   }
   // Tarifa: en pensiones mixtas la habitación compartida conserva el 70 % de la tarifa
   if (tipo === 'Mixta') {
-    db.prepare(`UPDATE habitaciones SET tarifa = CASE tipo WHEN 'compartida' THEN ? ELSE ? END WHERE pension_id = ?`)
+    await cx.prepare(`UPDATE habitaciones SET tarifa = CASE tipo WHEN 'compartida' THEN ? ELSE ? END WHERE pension_id = ?`)
       .run(Math.round(tarifa * 0.7), tarifa, pensionId);
   } else {
-    db.prepare('UPDATE habitaciones SET tarifa = ?, tipo = ? WHERE pension_id = ?').run(tarifa, tipoHab, pensionId);
+    await cx.prepare('UPDATE habitaciones SET tarifa = ?, tipo = ? WHERE pension_id = ?').run(tarifa, tipoHab, pensionId);
   }
 }
 
