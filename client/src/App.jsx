@@ -11,6 +11,7 @@ import { Splash } from './componentes/ui.jsx';
 import Cabecera, { NavPrincipal } from './componentes/Cabecera.jsx';
 import Pie from './componentes/Pie.jsx';
 import Icono from './componentes/Icono.jsx';
+import { useRevelarAlScroll } from './componentes/revelar.js';
 import { Bienvenida, Ingresar, Registro, Recuperar } from './paginas/Acceso.jsx';
 import InicioEstudiante from './paginas/InicioEstudiante.jsx';
 import Catalogo from './paginas/Catalogo.jsx';
@@ -59,6 +60,7 @@ export default function App() {
     return () => clearTimeout(t);
   }, [refrescar]);
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  useRevelarAlScroll(); // efecto «descubrir»: los bloques aparecen al hacer scroll
   useEffect(() => { if (!toast) return undefined; const t = setTimeout(() => setToast(''), 6500); return () => clearTimeout(t); }, [toast]);
 
   const proteger = useCallback((msg) => { protegida.current = msg; }, []);
@@ -100,6 +102,12 @@ export default function App() {
   return (
     <CtxSesion.Provider value={ctx}>
       <div className="app">
+        {/* Enlace para saltar la navegación con el teclado (WCAG 2.4.1) */}
+        <a href="#contenido" className="saltar" onClick={(e) => {
+          e.preventDefault();
+          const principal = document.querySelector('main');
+          if (principal) { principal.setAttribute('tabindex', '-1'); principal.focus(); }
+        }}>Saltar al contenido</a>
         {!enDetalle && <Cabecera />}
         {!enDetalle && <NavPrincipal items={NAV[rol]} />}
         {toast && (

@@ -137,7 +137,7 @@ export default function Detalle() {
   return (
     <div>
       <header className="barra-sup detalle-cab">
-        <button className="btn-icono" onClick={volver} aria-label="Volver" autoFocus><Icono nombre="atras" /></button>
+        <button className="btn-icono" onClick={volver} aria-label="Volver"><Icono nombre="atras" /></button>
         <b>{revision ? 'Revisión de pensión' : 'Detalle de pensión'}</b><span />
       </header>
       <main className="contenido">

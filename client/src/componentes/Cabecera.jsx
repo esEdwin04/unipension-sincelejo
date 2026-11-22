@@ -1,5 +1,7 @@
 // Cabecera de la aplicación (marca + cuenta) y navegación principal por rol
+import { useRef } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import { useCabeceraConScroll } from './revelar.js';
 import { useSesion } from '../App.jsx';
 import { Marca, Avatar } from './ui.jsx';
 import Icono from './Icono.jsx';
@@ -8,8 +10,10 @@ const ROL = { estudiante: 'Estudiante', propietario: 'Propietario', administrado
 
 export default function Cabecera() {
   const { usuario, irA } = useSesion();
+  const ref = useRef(null);
+  useCabeceraConScroll(ref); // sombra al desplazarse
   return (
-    <header className="app-cabecera">
+    <header className="app-cabecera" ref={ref}>
       <div className="app-cabecera-in">
         <button className="marca-app" onClick={() => irA('/')} aria-label="UniPensión, volver al inicio">
           <Marca compacta />

@@ -1,39 +1,44 @@
-// Tarjeta de pensión del catálogo y del inicio del estudiante
+// Tarjeta de pensión del catálogo y del inicio — rediseño v0.5.
+// Toda la tarjeta es clicable (el enlace del título la cubre con ::after) y el lector de pantalla
+// anuncia un solo enlace con el nombre de la pensión.
 import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import Icono, { IconoServicio } from './Icono.jsx';
 import { cop, cuposTexto, km } from '../api.js';
 
+const TIPO = { Mixta: 'Individual y compartida' };
+
 export default function TarjetaPension({ p, distancia, etiquetaDistancia }) {
   const servicios = String(p.servicios || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const cupos = p.cupos ?? p.habitaciones_libres;
+  const nota = p.calificacion ? String(p.calificacion).replace('.', ',') : null;
   return (
     <article className="tarjeta-pension">
       <div className="tp-foto">
-        <img src={p.foto || '/img/placeholder1.svg'} alt={`Imagen de ${p.nombre}`} loading="lazy" />
+        <img src={p.foto || '/img/placeholder1.svg'} alt="" loading="lazy" />
         {p.destacado && <span className="insignia dest"><Icono nombre="estrella" tam={13} />Destacado</span>}
-        <span className={`insignia cupos ${(p.cupos ?? p.habitaciones_libres) > 0 ? '' : 'sin-cupos'}`}>{cuposTexto(p.cupos ?? p.habitaciones_libres)}</span>
+        {nota && (
+          <span className="insignia nota" aria-label={`Calificación ${nota} de 5${p.total_resenas ? `, ${p.total_resenas} reseñas` : ''}`}>
+            <span className="estrellas" aria-hidden="true">★</span><b>{nota}</b>
+            {p.total_resenas > 0 && <small aria-hidden="true">({p.total_resenas})</small>}
+          </span>
+        )}
+        <span className={`insignia cupos ${cupos > 0 ? '' : 'sin-cupos'}`}>{cuposTexto(cupos)}</span>
       </div>
       <div className="tp-cuerpo">
-        <div className="tp-precio">
-          <b>{cop(p.tarifa_mensual)}<small> / mes</small></b>
-          <span className="chip sin-punto">{p.tipo_habitacion === 'Mixta' ? 'Individual y compartida' : p.tipo_habitacion}</span>
-        </div>
-        <Link className="tp-titulo" to={`/pension/${p.id}`} aria-label={`Ver ${p.nombre}`}>{p.nombre}</Link>
-        <p className="tp-lugar"><Icono nombre="ubicacion" tam={14} />{p.barrio} · Sincelejo</p>
-        <div className="tp-servicios">
-          {servicios.slice(0, 3).map((s) => <span key={s}><IconoServicio servicio={s} tam={15} />{s}</span>)}
-        </div>
-        {p.calificacion && (
-          <span className="estrellas" aria-label={`Calificación ${String(p.calificacion).replace('.', ',')} de 5`}>
-            {'★'.repeat(Math.round(p.calificacion))} {String(p.calificacion).replace('.', ',')}
-            {p.total_resenas > 0 && <small className="muted"> · {p.total_resenas} {p.total_resenas === 1 ? 'reseña' : 'reseñas'}</small>}
-          </span>
+        <Link className="tp-titulo" to={`/pension/${p.id}`}>{p.nombre}</Link>
+        <p className="tp-lugar"><Icono nombre="ubicacion" tam={13} />{p.barrio}</p>
+        {servicios.length > 0 && (
+          <div className="tp-servicios">
+            {servicios.slice(0, 3).map((s) => <span key={s}><IconoServicio servicio={s} tam={14} />{s}</span>)}
+            {servicios.length > 3 && <span>+{servicios.length - 3}</span>}
+          </div>
         )}
         {p.comentario_destacado && <p className="tp-cita">“{p.comentario_destacado}”</p>}
         {distancia != null && <p className="tp-dist">Aprox. {km(distancia)} km en línea recta · {etiquetaDistancia}</p>}
-        <div className="tp-pie">
-          <span>Información declarada</span>
-          <Link to={`/pension/${p.id}`}>Ver pensión <Icono nombre="flecha" tam={16} /></Link>
+        <div className="tp-precio">
+          <b>{cop(p.tarifa_mensual)}<small> / mes</small></b>
+          <span className="chip sin-punto">{TIPO[p.tipo_habitacion] || p.tipo_habitacion}</span>
         </div>
       </div>
     </article>
