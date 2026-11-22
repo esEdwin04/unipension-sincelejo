@@ -86,6 +86,10 @@ router.get('/demo', (_req, res) => {
     { nombre: 'Laura Montes', rol: 'estudiante', correo: 'estudiante2@unipension.co', clave: 'est123' },
     { nombre: 'Daniel Castro', rol: 'estudiante', correo: 'estudiante3@unipension.co', clave: 'est123' },
     { nombre: 'Carmen Vergara', rol: 'propietario', correo: 'propietaria@unipension.co', clave: 'prop123' },
+    { nombre: 'Rafael Pérez Arrieta', rol: 'propietario', correo: 'propietario2@unipension.co', clave: 'prop123' },
+    { nombre: 'Martha Salgado Ruiz', rol: 'propietario', correo: 'propietario3@unipension.co', clave: 'prop123' },
+    { nombre: 'Jorge Benítez Mercado', rol: 'propietario', correo: 'propietario4@unipension.co', clave: 'prop123' },
+    { nombre: 'Yolanda Meza Tovar', rol: 'propietario', correo: 'propietario5@unipension.co', clave: 'prop123' },
     { nombre: 'Administrador Plataforma', rol: 'administrador', correo: 'admin@unipension.co', clave: 'admin123' },
   ]);
 });

@@ -73,7 +73,7 @@ db.hoyColombia = hoyColombia;
 const VERSION_POLITICA = '2026-01-prototipo';
 db.VERSION_POLITICA = VERSION_POLITICA;
 // Cambiar este valor obliga a revisar esquema, migraciones y semillas en el siguiente arranque
-const VERSION_ESQUEMA = '0.3.2-valoradas';
+const VERSION_ESQUEMA = '0.4.0-favoritos';
 
 // ---------------------- ESQUEMA ----------------------
 const ESQUEMA = `
@@ -210,6 +210,13 @@ CREATE TABLE IF NOT EXISTS sesiones (                   -- sesiones HTTP (Vercel
   sid    TEXT PRIMARY KEY,
   datos  TEXT NOT NULL,
   expira INTEGER NOT NULL                               -- milisegundos desde 1970
+);
+
+CREATE TABLE IF NOT EXISTS favoritos (                  -- pensiones guardadas por el estudiante
+  usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+  pension_id INTEGER NOT NULL REFERENCES pensiones(id),
+  creado_en  TEXT NOT NULL DEFAULT (${AHORA}),
+  PRIMARY KEY (usuario_id, pension_id)
 );
 
 -- Índices para el catálogo con filtros (RNF-03)
@@ -349,6 +356,52 @@ async function sembrarPrototipo(tx) {
   }
 }
 
+// Arrendadores de demostración: la oferta real de Sincelejo es de muchos propietarios, no de uno solo.
+// Datos ficticios (documento DEMO-, WhatsApp sin autorizar). Clave de todos: prop123.
+const ARRENDADORES_DEMO = [
+  // [nombre, correo, teléfono, relación, documento, presentación]
+  ['Rafael Pérez Arrieta', 'propietario2@unipension.co', '3015550102', 'Propietario', 'DEMO-RP-002',
+    'Docente pensionado; arrienda habitaciones en su casa de Venecia y La Palma desde 2015. Perfil de demostración.'],
+  ['Martha Salgado Ruiz', 'propietario3@unipension.co', '3015550103', 'Persona autorizada para arrendar', 'DEMO-MS-003',
+    'Administra pensiones familiares en el Centro, cerca de las rutas a las universidades. Perfil de demostración.'],
+  ['Jorge Benítez Mercado', 'propietario4@unipension.co', '3015550104', 'Propietario', 'DEMO-JB-004',
+    'Ofrece habitaciones compartidas económicas para estudiantes foráneos. Perfil de demostración.'],
+  ['Yolanda Meza Tovar', 'propietario5@unipension.co', '3015550105', 'Propietario', 'DEMO-YM-005',
+    'Casa amplia con zonas comunes y ambiente tranquilo para estudiar. Perfil de demostración.'],
+];
+// Quién publica cada pensión de demostración (las que no están aquí siguen con Carmen Vergara)
+const ARRENDADOR_DE = {
+  'Residencia El Edén': 'propietario2@unipension.co', 'Pensión El Patio': 'propietario2@unipension.co',
+  'Pensión La Terraza': 'propietario2@unipension.co',
+  'Casa Universitaria La 20': 'propietario3@unipension.co', 'Pensión La Ceiba': 'propietario3@unipension.co',
+  'Pensión Casa Serena': 'propietario3@unipension.co',
+  'Pensión Casa Verde': 'propietario4@unipension.co', 'Pensión Los Almendros': 'propietario4@unipension.co',
+  'Hospedaje Villa Sofía': 'propietario5@unipension.co', 'Pensión El Encuentro': 'propietario5@unipension.co',
+};
+
+async function sembrarArrendadores(tx) {
+  if (await tx.prepare(`SELECT valor FROM meta WHERE clave = 'semilla_arrendadores'`).get()) return;
+  const carmen = await tx.prepare(`SELECT id FROM usuarios WHERE correo = 'propietaria@unipension.co'`).get();
+  if (carmen) {
+    const ids = {};
+    for (const [nombre, correo, telefono, relacion, documento, bio] of ARRENDADORES_DEMO) {
+      const existe = await tx.prepare('SELECT id FROM usuarios WHERE correo = ?').get(correo);
+      ids[correo] = existe ? existe.id : (await tx.prepare(`INSERT INTO usuarios
+          (nombre, correo, clave_hash, telefono, rol, acepta_datos, relacion, documento, bio, consentimiento_version, consentimiento_fecha)
+          VALUES (?,?,?,?,'propietario',1,?,?,?,?,${AHORA})`)
+        .run(nombre, correo, hash('prop123'), telefono, relacion, documento, bio, VERSION_POLITICA)).lastInsertRowid;
+    }
+    // Solo se trasladan pensiones de Carmen SIN reservas vigentes: una solicitud en curso no cambia de bandeja
+    for (const [pension, correo] of Object.entries(ARRENDADOR_DE)) {
+      await tx.prepare(`UPDATE pensiones SET propietario_id = ? WHERE nombre = ? AND propietario_id = ?
+          AND NOT EXISTS (SELECT 1 FROM reservas r JOIN habitaciones h ON h.id = r.habitacion_id
+                          WHERE h.pension_id = pensiones.id AND r.estado IN ('Pendiente de pago','Pagada','Confirmada'))`)
+        .run(ids[correo], pension, carmen.id);
+    }
+  }
+  await tx.prepare(`INSERT INTO meta (clave, valor) VALUES ('semilla_arrendadores', ?)`).run(new Date().toISOString());
+}
+
 // Reseñas de demostración (HU-10) para la sección «Mejor valoradas». Cada reseña se apoya en una
 // estadía Finalizada del estudiante, como exige la regla de la historia. Se siembran una sola vez
 // (marca en meta), así que si el administrador las oculta o se borran no vuelven a aparecer.
@@ -404,6 +457,7 @@ async function inicializar() {
     await sembrarPrototipo(tx);
     await actualizarFotosDemo(tx);
     await sembrarResenas(tx);
+    await sembrarArrendadores(tx);
     await tx.prepare(`INSERT INTO meta (clave, valor) VALUES ('esquema', ?)
       ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`).run(VERSION_ESQUEMA);
   });
