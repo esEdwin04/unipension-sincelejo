@@ -1,36 +1,25 @@
-// Pie de página con columnas, al estilo del sitio de referencia
+// Pie de página con identidad y "Acerca de la plataforma" (estructura del prototipo inicial)
+import { Marca } from './ui.jsx';
+
 export default function Pie() {
   return (
     <footer className="pie">
-      <div className="pie-inner">
-        <div>
-          <span className="marca">Uni<em>Pensión</em> Sincelejo</span>
-          <p style={{fontSize:'.92rem',maxWidth:280}}>
-            Hospedaje estudiantil verificado, cerca de tu campus. Compara, reserva y paga con confianza.
-          </p>
-        </div>
-        <div>
-          <h5>Menú</h5>
-          <a href="/#pensiones">Pensiones</a>
-          <a href="/#servicios">Servicios</a>
-          <a href="/#preguntas">Preguntas frecuentes</a>
-          <a href="/acceso">Ingresar</a>
-        </div>
-        <div>
-          <h5>Legal</h5>
-          <a href="/#preguntas">Tratamiento de datos (Ley 1581 de 2012)</a>
-          <a href="/#preguntas">Términos del servicio</a>
-        </div>
-        <div>
-          <h5>Contacto</h5>
-          <a href="mailto:contacto@unipension.co">contacto@unipension.co</a>
-          <a href="tel:+573000000000">+57 300 000 0000</a>
-          <p style={{fontSize:'.92rem',marginTop:8}}>Sincelejo, Sucre — Colombia</p>
-        </div>
-      </div>
-      <div className="pie-legal">
-        © {new Date().getFullYear()} UniPensión Sincelejo · Proyecto académico — Ingeniería de Software, CECAR ·
-        Edwin Díaz, José Paternina, Jesús Villalba
+      <div className="pie-in">
+        <div className="pie-id"><Marca compacta /><b>UniPensión</b><span>Tu lugar cerca del campus.</span></div>
+        <p>Proyecto académico · Ingeniería de Software, CECAR · Edwin Díaz, José Paternina, Jesús Villalba</p>
+        <details>
+          <summary>Acerca de la plataforma</summary>
+          <div>
+            <h3>Un proyecto académico en fase de prototipo</h3>
+            <p>UniPensión Sincelejo centraliza y verifica la oferta de pensiones universitarias de la ciudad. Los datos
+               de demostración (pensiones, perfiles y coordenadas) son ficticios.</p>
+            <p>La verificación del administrador revisa la información y las fotografías publicadas; no certifica la
+               identidad ni la propiedad legal del inmueble.</p>
+            <p>La pasarela de pagos está simulada y los correos se registran como notificaciones dentro de la plataforma.
+               El contacto por WhatsApp abre un enlace externo solo si el propietario autorizó su número.</p>
+            <p>Contacto: <a href="mailto:contacto@unipension.co">contacto@unipension.co</a> · Sincelejo, Sucre — Colombia.</p>
+          </div>
+        </details>
       </div>
     </footer>
   );

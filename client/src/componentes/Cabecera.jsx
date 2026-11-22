@@ -1,50 +1,43 @@
-import { useEffect, useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { API } from '../api.js';
+// Cabecera de la aplicación (marca + cuenta) y navegación principal por rol
+import { Link, NavLink } from 'react-router-dom';
 import { useSesion } from '../App.jsx';
+import { Marca, Avatar } from './ui.jsx';
+import Icono from './Icono.jsx';
 
-// Cabecera fija: transparente sobre el hero, sólida al hacer scroll (estilo boutique)
-export default function Cabecera({ transparente }) {
-  const { usuario, refrescar } = useSesion();
-  const [solida, setSolida] = useState(!transparente);
-  const [abierto, setAbierto] = useState(false);
-  const nav = useNavigate();
+const ROL = { estudiante: 'Estudiante', propietario: 'Propietario', administrador: 'Administrador' };
 
-  useEffect(() => {
-    if (!transparente) { setSolida(true); return; }
-    const alScroll = () => setSolida(window.scrollY > 60);
-    alScroll();
-    window.addEventListener('scroll', alScroll);
-    return () => window.removeEventListener('scroll', alScroll);
-  }, [transparente]);
-
-  const salir = async () => { await API.post('/auth/logout'); await refrescar(); nav('/'); };
-  const cerrar = () => setAbierto(false);
-
+export default function Cabecera() {
+  const { usuario, irA } = useSesion();
   return (
-    <header className={`cabecera ${transparente ? (solida ? 'solida' : '') : 'interior'}`}>
-      <Link to="/" className="marca" onClick={cerrar}>Uni<em>Pensión</em> Sincelejo</Link>
-      <button className="hamburguesa" aria-label="Abrir menú" onClick={() => setAbierto(!abierto)}>☰</button>
-      <nav className={`menu ${abierto ? 'abierto' : ''}`}>
-        <NavLink to="/" onClick={cerrar} className={({isActive}) => isActive ? 'activo' : ''}>Inicio</NavLink>
-        <a href="/#pensiones" onClick={cerrar}>Pensiones</a>
-        <a href="/#servicios" onClick={cerrar}>Servicios</a>
-        <a href="/#preguntas" onClick={cerrar}>Preguntas</a>
-        {usuario?.rol === 'estudiante' && <NavLink to="/mis-reservas" onClick={cerrar}>Mis reservas</NavLink>}
-        {usuario?.rol === 'propietario' && <NavLink to="/propietario" onClick={cerrar}>Mis pensiones</NavLink>}
-        {usuario?.rol === 'administrador' && <NavLink to="/admin" onClick={cerrar}>Panel</NavLink>}
+    <header className="app-cabecera">
+      <div className="app-cabecera-in">
+        <button className="marca-app" onClick={() => irA('/')} aria-label="UniPensión, volver al inicio">
+          <Marca compacta />
+          <span><b>Uni<em>Pensión</em></b><small>Pensiones estudiantiles · Sincelejo</small></span>
+        </button>
         {usuario ? (
-          <>
-            <span className="chip-usuario">{usuario.nombre.split(' ')[0]}</span>
-            <button className="boton chico secundario" onClick={salir} style={{borderColor:'currentColor',color:'inherit',background:'transparent'}}>Salir</button>
-          </>
+          <div className="cuenta">
+            <span><b>{usuario.nombre}</b><small>{ROL[usuario.rol]}</small></span>
+            <Avatar usuario={usuario} onClick={() => irA('/perfil')} />
+          </div>
         ) : (
-          <Link to="/acceso" onClick={cerrar} className="boton chico claro"
-                style={!solida && transparente ? {} : {borderColor:'var(--oliva)',color:'var(--oliva)'}}>
-            Ingresar
-          </Link>
+          <div className="cuenta"><Link className="btn chico" to="/ingresar">Iniciar sesión</Link></div>
         )}
-      </nav>
+      </div>
     </header>
+  );
+}
+
+export function NavPrincipal({ items }) {
+  const { irA } = useSesion();
+  return (
+    <nav className="nav-principal" aria-label="Navegación principal">
+      {items.map(([ruta, icono, texto]) => (
+        <NavLink key={ruta} to={ruta} end={ruta === '/'} className={({ isActive }) => (isActive ? 'activo' : '')}
+                 onClick={(e) => { e.preventDefault(); irA(ruta); }}>
+          <span className="ic"><Icono nombre={icono} tam={20} /></span>{texto}
+        </NavLink>
+      ))}
+    </nav>
   );
 }
