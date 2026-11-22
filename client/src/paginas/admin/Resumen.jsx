@@ -16,10 +16,12 @@ export default function Resumen() {
     <main className="contenido">
       <TituloPagina titulo={`Hola, ${primerNombre(usuario.nombre)}`} subtitulo="Administración de la plataforma · verificación, reportes y auditoría" />
       <section className="hero-panel">
-        <p className="eyebrow">Moderación UniPensión</p>
-        <h2>Pensiones claras, decisiones trazables.</h2>
-        <p>Revisa condiciones, fotografías y reportes antes de publicar. Cada decisión queda en la bitácora.</p>
-        <button className="btn claro" onClick={() => nav('/admin/publicaciones?estado=Pendiente')}>Revisar publicaciones</button>
+        <div className="vidrio vidrio-hero">
+          <p className="eyebrow">Moderación UniPensión</p>
+          <h2>Pensiones claras, decisiones trazables.</h2>
+          <p>Revisa condiciones, fotografías y reportes antes de publicar. Cada decisión queda en la bitácora.</p>
+          <button className="btn claro" onClick={() => nav('/admin/publicaciones?estado=Pendiente')}>Revisar publicaciones</button>
+        </div>
       </section>
       <Aviso tipo="error">{error}</Aviso>
       {k && (

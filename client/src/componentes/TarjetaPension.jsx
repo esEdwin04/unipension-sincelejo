@@ -8,6 +8,8 @@ import { cop, cuposTexto, km } from '../api.js';
 import BotonFavorito from './BotonFavorito.jsx';
 
 const TIPO = { Mixta: 'Individual y compartida' };
+// Escasez real (dato del servidor, nunca inventado): con 1 o 2 cupos la insignia se vuelve coral
+const textoCupos = (n) => (n === 1 ? '¡Último cupo!' : n === 2 ? '¡Quedan 2 cupos!' : cuposTexto(n));
 
 export default function TarjetaPension({ p, distancia, etiquetaDistancia }) {
   const servicios = String(p.servicios || '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -24,12 +26,13 @@ export default function TarjetaPension({ p, distancia, etiquetaDistancia }) {
             {p.total_resenas > 0 && <small aria-hidden="true">({p.total_resenas})</small>}
           </span>
         )}
-        <span className={`insignia cupos ${cupos > 0 ? '' : 'sin-cupos'}`}>{cuposTexto(cupos)}</span>
+        <span className={`insignia cupos ${cupos > 0 ? (cupos <= 2 ? 'escaso' : '') : 'sin-cupos'}`}>{textoCupos(cupos)}</span>
         <BotonFavorito pension={p} />
       </div>
       <div className="tp-cuerpo">
         <Link className="tp-titulo" to={`/pension/${p.id}`}>{p.nombre}</Link>
         <p className="tp-lugar"><Icono nombre="ubicacion" tam={13} />{p.barrio}</p>
+        {p.publicada !== false && <span className="tp-verificada"><Icono nombre="escudo" tam={14} />Verificada por UniPensión</span>}
         {servicios.length > 0 && (
           <div className="tp-servicios">
             {servicios.slice(0, 3).map((s) => <span key={s}><IconoServicio servicio={s} tam={14} />{s}</span>)}
