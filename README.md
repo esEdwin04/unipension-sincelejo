@@ -6,6 +6,8 @@ Aplicación web para centralizar, verificar y hacer transparente la oferta de pe
 Equipo: Edwin Díaz · José Paternina · Jesús Villalba
 Docente: Laudyth Lambraño
 
+**Aplicación publicada:** https://unipension-sincelejo.vercel.app (cuentas de demostración en la tabla de abajo)
+
 ## Tecnologías (todas gratuitas)
 
 | Capa | Tecnología |
