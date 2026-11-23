@@ -47,7 +47,7 @@ export default function Catalogo() {
 
   useEffect(() => {
     API.get('/pensiones/universidades').then(setUnis).catch(() => {});
-    API.get('/pensiones/barrios').then((b) => setBarrios(b.map((x) => x.barrio))).catch(() => {});
+    API.get('/pensiones/barrios-sincelejo').then(setBarrios).catch(() => {});
     API.get('/pensiones/servicios').then(setServicios).catch(() => {});
   }, []);
 
@@ -204,8 +204,15 @@ export default function Catalogo() {
             </Campo>
             <Campo etiqueta="Barrio">
               <select value={borrador.barrio} onChange={(e) => setBorrador({ ...borrador, barrio: e.target.value })}>
-                <option value="">Todos</option>
-                {barrios.map((b) => <option key={b}>{b}</option>)}
+                <option value="">Todos los barrios</option>
+                <optgroup label="Con pensiones disponibles">
+                  {barrios.filter((b) => b.pensiones > 0).map((b) => (
+                    <option key={b.barrio} value={b.barrio}>{b.barrio} ({b.pensiones})</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Otros barrios de Sincelejo">
+                  {barrios.filter((b) => !b.pensiones).map((b) => <option key={b.barrio} value={b.barrio}>{b.barrio}</option>)}
+                </optgroup>
               </select>
             </Campo>
             <Campo etiqueta="Precio mínimo COP">

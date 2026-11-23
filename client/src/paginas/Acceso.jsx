@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { API, documentoValido, modoDemo, textoDocumento } from '../api.js';
+import { celular, MENSAJES, nombreValido, soloAlfanumerico, soloLetras } from '../validacion.js';
 import { useSesion } from '../App.jsx';
 import { Marca, Campo, Aviso, PoliticaDatos, VERSION_POLITICA } from '../componentes/ui.jsx';
 import Icono from '../componentes/Icono.jsx';
@@ -151,12 +152,12 @@ export function Registro() {
       confirmar: String(f.get('confirmar') || ''), institucion: v('institucion'), documento: v('documento'),
       relacion: v('relacion'), acepta_datos: !!f.get('politica') };
     const err = {};
-    if (datos.nombre.length < 3) err.nombre = 'Escribe tu nombre completo.';
+    if (!nombreValido(datos.nombre)) err.nombre = MENSAJES.nombre;
     if (!correoOk(datos.correo)) err.correo = 'Escribe un correo válido.';
     if (!claveOk(datos.clave)) err.clave = 'Usa al menos 8 caracteres, mayúscula, minúscula y número.';
     if (datos.clave !== datos.confirmar) err.confirmar = 'Las contraseñas no coinciden.';
     if ((rol === 'propietario' || datos.telefono) && !celularOk(datos.telefono))
-      err.telefono = 'Número celular colombiano: 10 dígitos que comiencen por 3. Se guardará con +57.';
+      err.telefono = `${MENSAJES.celular} Se guardará con +57.`;
     if (rol === 'propietario' && !documentoValido(datos.documento, demo)) err.documento = doc.error;
     if (rol === 'estudiante' && !datos.institucion) err.institucion = 'Selecciona tu institución.';
     if (!datos.acepta_datos) err.politica = 'Acepta la política de tratamiento de datos personales para continuar.';
@@ -208,10 +209,14 @@ export function Registro() {
           <span className="hecho">1. Tu experiencia</span><span className="activo">2. Tus datos</span>
         </div>
         <div className="titulo-form"><span>01</span><div><h2>Un poco sobre ti</h2><p>Los campos con * son obligatorios.</p></div></div>
-        <Campo etiqueta="Nombre completo *" error={errores.nombre}><input name="nombre" autoComplete="name" /></Campo>
-        <Campo etiqueta="Correo electrónico *" error={errores.correo}><input name="correo" type="email" autoComplete="email" /></Campo>
+        <Campo etiqueta="Nombre y apellido *" error={errores.nombre}>
+          <input name="nombre" autoComplete="name" maxLength={80} placeholder="Ej.: María Pérez"
+                 onInput={(e) => { e.currentTarget.value = soloLetras(e.currentTarget.value); }} />
+        </Campo>
+        <Campo etiqueta="Correo electrónico *" error={errores.correo}><input name="correo" type="email" autoComplete="email" maxLength={100} /></Campo>
         <Campo etiqueta={rol === 'propietario' ? 'Número de WhatsApp *' : 'Número de teléfono (opcional)'} error={errores.telefono}>
-          <input name="telefono" type="tel" placeholder="+57 3XX XXX XXXX" autoComplete="tel" />
+          <input name="telefono" type="tel" inputMode="numeric" maxLength={10} placeholder="3XX XXX XXXX" autoComplete="tel-national"
+                 onInput={(e) => { e.currentTarget.value = celular(e.currentTarget.value); }} />
         </Campo>
         {rol === 'estudiante' ? (
           <Campo etiqueta="Institución educativa *" error={errores.institucion}>
@@ -224,7 +229,8 @@ export function Registro() {
         ) : (
           <>
             <Campo etiqueta={doc.etiqueta} error={errores.documento}>
-              <input name="documento" placeholder={doc.ayuda} autoComplete="off" />
+              <input name="documento" placeholder={doc.ayuda} autoComplete="off" maxLength={15}
+                     onInput={(e) => { e.currentTarget.value = soloAlfanumerico(e.currentTarget.value); }} />
             </Campo>
             <Campo etiqueta="Relación con la pensión">
               <select name="relacion">
