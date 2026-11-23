@@ -19,3 +19,6 @@ client/dist/
 # Vercel y variables locales
 .vercel/
 .env*
+
+# Respaldos de la base (contienen datos personales; no se suben a GitHub)
+backend/respaldos/

@@ -12,6 +12,8 @@
     "dev:client": "npm --prefix client run dev",
     "build": "npm --prefix client install && npm --prefix client run build",
     "test": "node --test pruebas/api.test.js",
+    "db:respaldo": "node backend/scripts/respaldo.js",
+    "db:restaurar": "node backend/scripts/respaldo.js --restaurar",
     "db:iniciar": "node -e \"require('./backend/db').listo.then(() => process.exit(0), (e) => { console.error(e); process.exit(1); })\""
   },
   "keywords": [],
