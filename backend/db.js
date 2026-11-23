@@ -1,6 +1,6 @@
-// =============================================================
+// --------------------------------------------------------------------
 // UniPensión Sincelejo — Capa de persistencia (libSQL / Turso)
-// Responsable: Administrador de Base de Datos
+// Responsable: jesus v
 //
 // - Producción (Vercel): base SQLite en la nube de Turso. Variables:
 //     TURSO_DATABASE_URL  (libsql://<base>-<usuario>.turso.io)
@@ -10,13 +10,14 @@
 // La API imita la de better-sqlite3, pero es asíncrona:
 //   await db.prepare(sql).get(...) · .all(...) · .run(...)
 //   await db.transaction(async (tx) => { await tx.prepare(...).run(...) })
-// Crea el esquema y los datos semilla la primera vez (db.listo).
-// =============================================================
+// Creacion del esquema y los datos semilla por primera vez (db.listo).
+// --------------------------------------------------------------------
+
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
 const URL_REMOTA = process.env.TURSO_DATABASE_URL;
-// En la nube se usa el cliente web (HTTP, sin binarios nativos); en local, el cliente con soporte de archivos
+// El cliente de la nube va a aprovechar el cliente web (HTTP, sin binarios nativos); el cliente local es el que tiene soporte para archivos.
 const { createClient } = URL_REMOTA ? require('@libsql/client/web') : require('@libsql/client');
 const cliente = createClient(URL_REMOTA
   ? { url: URL_REMOTA, authToken: process.env.TURSO_AUTH_TOKEN }
@@ -233,7 +234,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_reporte_pendiente_unico
 `;
 
 // ---------------------- MIGRACIONES ----------------------
-// Columnas agregadas en la adaptación al prototipo. Idempotente: no borra datos existentes.
+// Las columnas agregadas son las de la adaptación del prototipo. Idempotente: no borra los datos que ya existen.
 const COLUMNAS = {
   usuarios: [
     ['foto', 'TEXT'], ['institucion', 'TEXT'], ['programa', 'TEXT'], ['nivel', 'TEXT'],
@@ -257,7 +258,7 @@ async function migrarColumnas() {
 }
 
 // ---------------------- FOTOGRAFÍAS DE LAS PENSIONES DE DEMOSTRACIÓN ----------------------
-// Fotos de Unsplash (licencia libre) en client/public/img/pensiones/. Origen en docs/CREDITOS_IMAGENES.md
+// Fotos de Unsplash (licencia libre) en client/public/img/pensiones/. 
 const foto = (n) => `/img/pensiones/habitacion-${String(n).padStart(2, '0')}.webp`;
 const FOTOS_DEMO = {
   'Pensión Doña Carmen': [1, 2, 22],       'Residencia El Edén': [3, 12, 21],
@@ -270,7 +271,7 @@ const FOTOS_DEMO = {
 };
 const fotosDe = (nombre) => (FOTOS_DEMO[nombre] || [1, 2]).map(foto);
 
-// Reemplaza las ilustraciones de relleno por fotos reales en bases creadas con versiones anteriores
+// aqui Reemplazamos las ilustraciones de relleno por fotos reales en bases creadas con versiones anteriores
 async function actualizarFotosDemo(tx) {
   const pensiones = await tx.prepare(`SELECT p.id, p.nombre FROM pensiones p
     WHERE NOT EXISTS (SELECT 1 FROM fotos f WHERE f.pension_id = p.id AND f.url NOT LIKE '/img/placeholder%')`).all();

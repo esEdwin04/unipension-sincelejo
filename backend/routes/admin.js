@@ -1,7 +1,7 @@
-// =============================================================
+
 // Módulo del panel administrativo (HU-12 → RF-14)
-// Responsables: Desarrollador Backend + Administrador DB (consultas)
-// =============================================================
+// Responsables: jesusv + jose p (consultas)
+// ----------------------------------------------------------------
 const express = require('express');
 const db = require('../db');
 const { requiereRol } = require('../middleware/auth');
@@ -24,7 +24,7 @@ router.get('/indicadores', async (_req, res) => {
     (SELECT COUNT(*) FROM pensiones WHERE destacado=1)                        AS destacadas,
     (SELECT COUNT(*) FROM reportes_pensiones WHERE estado='Pendiente')        AS reportes_activos,
     (SELECT COUNT(*) FROM contactos)                                          AS contactos`).get();
-  // Ocupación y arriendo promedio por barrio (tarea del Administrador DB, Sprint 4)
+  // Ocupaciónes y arriendos promedio por barrio (jesus v, Sprint 4)
   const porBarrio = await db.prepare(`
     SELECT p.barrio,
            COUNT(h.id)                                               AS habitaciones,
@@ -33,7 +33,7 @@ router.get('/indicadores', async (_req, res) => {
            ROUND(AVG(h.tarifa),0)                                    AS arriendo_promedio
     FROM pensiones p JOIN habitaciones h ON h.pension_id = p.id
     GROUP BY p.barrio ORDER BY ocupacion_pct DESC`).all();
-  // Pensiones más solicitadas y mejor calificadas (esc. 4)
+  // Pensiones más solicitadas y mejor calificadas.
   const top = await db.prepare(`
     SELECT p.nombre, p.barrio,
            (SELECT COUNT(*) FROM reservas r JOIN habitaciones h ON h.id=r.habitacion_id
