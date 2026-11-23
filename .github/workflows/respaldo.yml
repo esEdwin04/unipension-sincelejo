@@ -1,0 +1,43 @@
+# Respaldo diario de la base de datos en Turso (DB3 · RNF-09)
+# Corre todos los días a las 2:00 a. m. (hora de Colombia) y guarda el archivo
+# .sql como artefacto de GitHub durante 30 días. También se puede lanzar a mano
+# desde Actions → Respaldo diario → Run workflow.
+#
+# Requiere los secretos TURSO_DATABASE_URL y TURSO_AUTH_TOKEN
+# (Settings → Secrets and variables → Actions). Sin ellos, el flujo avisa y no falla.
+name: Respaldo diario
+
+on:
+  schedule:
+    - cron: '0 7 * * *'   # 07:00 UTC = 02:00 en Colombia
+  workflow_dispatch:
+
+jobs:
+  respaldo:
+    runs-on: ubuntu-latest
+    env:
+      TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+      TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+      RESPALDO_DIR: respaldos
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Generar el respaldo
+        run: |
+          if [ -z "$TURSO_DATABASE_URL" ]; then
+            echo "::warning::Faltan los secretos de Turso; no se generó el respaldo."
+            exit 0
+          fi
+          npm run db:respaldo
+      - name: Guardar el respaldo por 30 días
+        if: hashFiles('respaldos/*.sql') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: respaldo-${{ github.run_number }}
+          path: respaldos/*.sql
+          retention-days: 30
