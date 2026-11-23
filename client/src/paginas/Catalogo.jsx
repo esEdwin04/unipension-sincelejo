@@ -1,8 +1,9 @@
-// =============================================================
-// Catálogo "¿Dónde quieres vivir?" (HU-04) — prototipo inicial:
+// -------------------------------------------------------------------------------------
+// Responsable: Edwin Diaz
+// Catálogo (HU-04) 
 // buscador, panel de filtros, filtros activos removibles, ubicación del dispositivo,
 // vista Lista / Mapa, conteo, paginación de 12 y estado sin resultados.
-// =============================================================
+// -------------------------------------------------------------------------------------
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { API, cop } from '../api.js';
@@ -20,7 +21,7 @@ function distanciaKm(a, b) {
   return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-// Los filtros viven en la URL: se pueden compartir y se conservan al volver de la ficha
+// Los filtros se encuentran en la URL: se pueden compartir y se conservan al volver de la ficha
 const leer = (sp) => ({ ...VACIO, ...Object.fromEntries(sp.entries()), servicios: sp.get('servicios') ? sp.get('servicios').split(',') : [] });
 
 export default function Catalogo() {
@@ -97,7 +98,7 @@ export default function Catalogo() {
     aplicar({ ...borrador, q: texto });
   }
 
-  // Ubicación del dispositivo: solo en memoria durante la búsqueda, no se guarda ni se comparte
+  // Ubicación del dispositivo.
   function usarUbicacion() {
     if (!window.isSecureContext) return setGeo({ estado: 'error', msj: 'La ubicación requiere HTTPS o localhost. Puedes seguir usando los filtros.' });
     if (!navigator.geolocation) return setGeo({ estado: 'error', msj: 'Este navegador no ofrece ubicación. Busca por universidad, barrio o toca el mapa.' });

@@ -1,8 +1,9 @@
-// =============================================================
+// ----------------------------------------------------------------
+// Responsable: Edwin Diaz
 // Carrusel de fotos: se desliza con el dedo (scroll-snap nativo, suave en iPhone y Android),
 // con flechas y teclado (← →) en escritorio y puntos indicadores.
 // Lo usan la galería de la ficha y la vista ampliada.
-// =============================================================
+// ----------------------------------------------------------------
 import { useEffect, useRef } from 'react';
 import Icono from './Icono.jsx';
 

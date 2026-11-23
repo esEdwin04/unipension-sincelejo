@@ -1,3 +1,4 @@
+// Rsponsable: Edwin Diaz
 // Botón «Agregar a favoritos» (corazón). Estudiante: guarda o quita la pensión.
 // Visitante sin cuenta: lleva a iniciar sesión. Propietario y administrador: no se muestra.
 import { useNavigate } from 'react-router-dom';

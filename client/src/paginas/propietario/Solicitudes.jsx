@@ -1,5 +1,8 @@
+// -------------------------------------------------------------------------------
+// Responsable: Edwin Diaz
 // Bandeja de solicitudes del propietario (HU-09): aceptar o rechazar con motivo (diálogo),
 // plazo de 48 h y notificaciones.
+// -------------------------------------------------------------------------------
 import { useEffect, useState } from 'react';
 import { API, cop, fecha } from '../../api.js';
 import { useSesion } from '../../App.jsx';

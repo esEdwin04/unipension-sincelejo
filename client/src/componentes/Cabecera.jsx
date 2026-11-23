@@ -1,3 +1,4 @@
+// Responsable: Edwin Diaz
 // Cabecera de la aplicación (marca + cuenta) y navegación principal por rol
 import { useRef } from 'react';
 import { Link, NavLink } from 'react-router-dom';

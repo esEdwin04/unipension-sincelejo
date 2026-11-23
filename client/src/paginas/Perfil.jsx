@@ -1,7 +1,8 @@
-// =============================================================
+// -------------------------------------------------------------------------------
+// Responsable: Edwin Diaz.
 // Perfil (prototipo): Mi perfil · Editar perfil · Configuración de la cuenta ·
 // Cambiar contraseña · Privacidad y tratamiento de datos (RNF-05, RNF-07)
-// =============================================================
+// --------------------------------------------------------------------------------
 import { useEffect, useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { API, fecha, modoDemo, textoDocumento } from '../api.js';

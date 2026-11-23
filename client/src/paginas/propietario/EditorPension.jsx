@@ -1,10 +1,11 @@
-// =============================================================
+// ------------------------------------------------------------------------------------
+// Responsable: Edwin Diaz
 // Editor de pensión en 3 pasos (HU-01 publicar / HU-02 editar) — prototipo inicial:
 //   1. Información y ubicación (mapa + confirmación del punto)
 //   2. Cupos, precio, servicios y convivencia
 //   3. Fotografías (1 a 5, comprimidas en el navegador) y revisión
 // Las pensiones nuevas guardan un borrador automático en el servidor.
-// =============================================================
+// ------------------------------------------------------------------------------------ 
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { API, cop } from '../../api.js';

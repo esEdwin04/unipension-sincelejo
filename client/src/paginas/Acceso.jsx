@@ -1,7 +1,8 @@
-// =============================================================
+// ------------------------------------------------------------------------------------------------
+// Responsable: Edwin Diaz
 // Pantallas de acceso (RF-01, RNF-05, RNF-07) — prototipo inicial:
-// Bienvenida → Iniciar sesión | Crear cuenta (1. Tu experiencia · 2. Tus datos) | Recuperación
-// =============================================================
+// Bienvenida → Iniciar sesión | Crear cuenta | Login
+// -------------------------------------------------------------------------------------------------
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { API, documentoValido, modoDemo, textoDocumento } from '../api.js';
@@ -58,7 +59,7 @@ export function Bienvenida() {
           <button className="btn ancho" onClick={() => nav('/ingresar')}>Iniciar sesión</button>
           <button className="btn sec ancho" onClick={() => nav('/registro')}>Crear cuenta</button>
           <Link className="btn-link centrado" to="/buscar">Explorar pensiones sin cuenta</Link>
-          <small>Aplicación web responsiva · Proyecto académico CECAR</small>
+          <small>Aplicación web responsiva</small>
         </div>
       </main>
     </Escenario>

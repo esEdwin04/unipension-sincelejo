@@ -1,7 +1,8 @@
-// =============================================================
+// ---------------------------------------------------------------------------------
+// Responsable: Edwin Diaz
 // Mis reservas del estudiante (HU-07, HU-08, HU-11): pago (pasarela simulada),
 // pestañas Vigentes / Histórico / Todas, detalle, comprobante PDF y notificaciones.
-// =============================================================
+// ---------------------------------------------------------------------------------
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { API, cop, fecha } from '../api.js';

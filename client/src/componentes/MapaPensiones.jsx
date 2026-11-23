@@ -1,10 +1,11 @@
-// =============================================================
+// ------------------------------------------------------------------------------
+// Responsable: Edwin Diaz
 // Mapa de pensiones (Leaflet + OpenStreetMap, sin clave de API)
 // - Pines con precio y agrupación de pensiones cercanas
 // - Ubicación autorizada del estudiante (azul) y referencia manual (amarillo)
 // - onSeleccionar: permite elegir un punto tocando el mapa (catálogo y editor)
 // Se carga de forma diferida (React.lazy) para no aumentar la carga inicial.
-// =============================================================
+// -------------------------------------------------------------------------------
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';

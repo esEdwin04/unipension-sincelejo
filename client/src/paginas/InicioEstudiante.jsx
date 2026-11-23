@@ -1,9 +1,10 @@
-// =============================================================
+// ----------------------------------------------------------------------------------------
+// Respondsable: Edwin Diaz
 // Inicio del estudiante (y de visitantes sin cuenta) — rediseño v0.5 «Descubre tu lugar».
 // Recorrido de arriba abajo: portada con collage y buscador → mejor valoradas → explorar por
 // barrio → pensiones para descubrir → cómo funciona.
 // Las secciones aparecen al hacer scroll (componentes/revelar.js).
-// =============================================================
+// ----------------------------------------------------------------------------------------
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { API, cop, primerNombre } from '../api.js';

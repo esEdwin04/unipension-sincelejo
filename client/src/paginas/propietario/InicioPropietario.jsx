@@ -1,9 +1,10 @@
-// =============================================================
-// Inicio del propietario — panel compacto (v0.5.1).
+// --------------------------------------------------------------------------------------------
+// Responsable: Edwin Diaz
+// Inicio del propietario — panel compacto.
 // Encabezado con acciones · indicadores · dos columnas: «Tus pensiones» (estado y cupos) y
 // «Solicitudes por responder» (con su plazo de 48 h) · planes. Sin banners decorativos que
 // empujen la información hacia abajo.
-// =============================================================
+// --------------------------------------------------------------------------------------------
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { API, cop, fecha, primerNombre, ETIQUETA_ESTADO } from '../../api.js';

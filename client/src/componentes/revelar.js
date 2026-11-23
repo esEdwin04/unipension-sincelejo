@@ -1,4 +1,5 @@
-// =============================================================
+// ---------------------------------------------------------------------------------------------------
+// Responsable: Edwin Diaz
 // Efecto «descubrir»: los bloques aparecen al entrar en pantalla mientras se hace scroll.
 // - Registra automáticamente los elementos de SELECTOR en todas las páginas (también los que se
 //   cargan después, como los resultados del catálogo) y los que tengan el atributo data-revelar.
@@ -7,7 +8,7 @@
 // - Respeta prefers-reduced-motion y, sin IntersectionObserver o sin JavaScript, todo se ve normal:
 //   la clase .rv (oculto) solo la pone este módulo.
 // Responsable: Desarrollador Frontend
-// =============================================================
+// ---------------------------------------------------------------------------------------------------
 import { useEffect } from 'react';
 
 const SELECTOR = [

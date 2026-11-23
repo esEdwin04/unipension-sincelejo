@@ -1,3 +1,4 @@
+// Responsable: Edwin Diaz
 // Pie de página: identidad y enlaces de exploración
 import { Link } from 'react-router-dom';
 import { Marca } from './ui.jsx';

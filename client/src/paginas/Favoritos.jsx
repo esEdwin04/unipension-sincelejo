@@ -1,7 +1,8 @@
-// =============================================================
+// --------------------------------------------------------------------------------
+// Responsable: Edwin Diaz.
 // Favoritos del estudiante: pensiones guardadas para comparar y decidir después.
 // Al quitar un corazón la tarjeta desaparece de la lista (el estado vive en App).
-// =============================================================
+// --------------------------------------------------------------------------------
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { API } from '../api.js';

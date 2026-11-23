@@ -1,8 +1,9 @@
-// =============================================================
+// -------------------------------------------------------------------------
+// Responsable: Edwin Diaz
 // Ficha de la pensión (HU-05) + reserva (HU-06) + reseñas (HU-10)
-// + contacto por WhatsApp y reporte de información (prototipo inicial).
+// + contacto por WhatsApp y reporte de información.
 // Propietario y administrador la ven en modo "Revisión de pensión".
-// =============================================================
+// -------------------------------------------------------------------------
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { API, cop, cuposTexto, fecha, estrellas, km, ETIQUETA_ESTADO } from '../api.js';

@@ -1,5 +1,8 @@
+// -------------------------------------------------------------------------------
+// Responsable: Edwin Diaz
 // Mis pensiones (HU-01, HU-02): estados de moderación y disponibilidad independientes,
 // ver detalle, editar, actualizar cupos (diálogo) y marcar ocupada.
+// -------------------------------------------------------------------------------
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API, cop, ETIQUETA_ESTADO, EXPLICA_ESTADO } from '../../api.js';

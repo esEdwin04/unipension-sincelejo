@@ -1,3 +1,4 @@
+// Responsble: Edwin Diaz
 // Tarjeta de pensión del catálogo y del inicio — rediseño v0.5.
 // Toda la tarjeta es clicable (el enlace del título la cubre con ::after) y el lector de pantalla
 // anuncia un solo enlace con el nombre de la pensión.

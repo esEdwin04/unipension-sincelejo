@@ -1,7 +1,9 @@
-// =============================================================
+// ---------------------------------------------------------------------------
+// Responsable: Edwin Diaz
 // Componentes de interfaz reutilizables (marca, campos, avisos, diálogos…)
 // Responsable: Desarrollador Frontend
-// =============================================================
+// ---------------------------------------------------------------------------
+
 import { useEffect, useRef } from 'react';
 import Icono from './Icono.jsx';
 
