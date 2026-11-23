@@ -11,6 +11,10 @@ const router = express.Router();
 router.post('/', requiereRol('estudiante'), async (req, res) => {
   const { pension_id, estrellas, comentario } = req.body;
   if (!pension_id || !estrellas) return res.status(400).json({ error: 'Pensión y calificación son obligatorias' });
+  if (!Number.isInteger(+estrellas) || +estrellas < 1 || +estrellas > 5)
+    return res.status(400).json({ error: 'La calificación debe ser de 1 a 5 estrellas.' });
+  if (comentario && !require('../utils/validacion').textoValido(comentario, 0, 800))
+    return res.status(400).json({ error: 'El comentario admite hasta 800 caracteres, sin etiquetas.' });
 
   // Esc. 2: solo con estadía finalizada en esa pensión
   const estadia = await db.prepare(`

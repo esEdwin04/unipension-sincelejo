@@ -51,8 +51,9 @@ function cliente() {
   };
 }
 
+let contadorQA = 0; // direcciones distintas y con formato válido para cada pensión de prueba
 const nuevaPension = (extra = {}) => ({
-  nombre: 'Pensión Prueba QA', descripcion: 'Habitaciones para pruebas automáticas', direccion: `Cll QA # ${Date.now()}`,
+  nombre: 'Pensión Prueba QA', descripcion: 'Habitaciones para pruebas automáticas', direccion: `Cll ${10 + (contadorQA++ % 80)} # ${Date.now() % 90 + 1}-${Date.now() % 97 + 1}`,
   barrio: 'Centro', lat: 9.3, lng: -75.39, tarifa_mensual: 350000, deposito: 50000, tipo_habitacion: 'Individual',
   capacidad: 3, cupos: 2, servicios: ['Internet', 'Cocina'], reglas: 'Silencio después de las 10 pm',
   fotos: ['/img/placeholder1.svg'], instituciones: ['CECAR'], ...extra,
@@ -358,4 +359,36 @@ test('Modo real (MODO_DEMO=false): sin cuentas demo y documento de identidad rea
     if (anterior === undefined) delete process.env.MODO_DEMO; else process.env.MODO_DEMO = anterior;
   }
   assert.deepEqual((await cliente().get('/auth/modo')).datos, { demo: true });
+});
+
+test('Validación de campos: dirección, barrio, ubicación, precio, nombre, reserva y reseña', async () => {
+  const prop = cliente(), est = cliente(), anon = cliente();
+  await prop.entrar('propietaria@unipension.co', 'prop123');
+  await est.entrar('estudiante@unipension.co', 'est123');
+  const err = async (extra) => (await prop.post('/pensiones', nuevaPension(extra))).datos.campos || {};
+  assert.ok((await err({ direccion: 'cerca a la ceiba' })).direccion);
+  assert.ok((await err({ barrio: '<b>x</b>' })).barrio);
+  assert.ok((await err({ lat: 4.71, lng: -74.07 })).lat);                 // Bogotá: fuera de Sincelejo
+  assert.ok((await err({ tarifa_mensual: 5000 })).tarifa_mensual);
+  assert.ok((await err({ deposito: 9000000 })).deposito);
+  assert.ok((await err({ descripcion: 'corta' })).descripcion);
+  assert.ok((await err({ servicios: ['Piscina'] })).servicios);
+  // Barrio escrito sin tildes ni mayúsculas se guarda con el nombre oficial
+  const r = await prop.post('/pensiones', nuevaPension({ barrio: 'ciudad jardin' }));
+  assert.equal(r.status, 201);
+  assert.equal((await prop.get(`/pensiones/${r.datos.id}`)).datos.barrio, 'Ciudad Jardín');
+  // Lista de barrios reales para los menús
+  const barrios = (await anon.get('/pensiones/barrios-sincelejo')).datos;
+  assert.ok(barrios.length > 100);
+  assert.ok(barrios.find((b) => b.barrio === 'Centro').pensiones > 0);
+  // Nombre de persona: con apellido y sin números
+  assert.equal((await est.put('/auth/perfil', { nombre: 'Luis 123' })).status, 400);
+  assert.equal((await est.put('/auth/perfil', { programa: '<script>x</script>' })).status, 400);
+  // Reserva: meses entre 1 y 12 y fecha no mayor a un año
+  const p = (await anon.get('/pensiones')).datos[0];
+  const hab = (await anon.get(`/pensiones/${p.id}`)).datos.habitaciones.find((h) => h.estado === 'Libre');
+  const manana = new Date(Date.now() + 86400e3).toISOString().slice(0, 10);
+  assert.equal((await est.post('/reservas', { habitacion_id: hab.id, fecha_ingreso: manana, meses: 24 })).status, 400);
+  assert.equal((await est.post('/reservas', { habitacion_id: hab.id, fecha_ingreso: '2099-01-01', meses: 6 })).status, 400);
+  assert.equal((await est.post('/resenas', { pension_id: p.id, estrellas: 9 })).status, 400);
 });

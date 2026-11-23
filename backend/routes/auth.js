@@ -28,8 +28,8 @@ router.post('/registro', async (req, res) => {
   const errores = {};
   if (!['estudiante', 'propietario'].includes(rol))
     return res.status(400).json({ error: 'El registro público no permite administradores' });
-  if (!nombre || String(nombre).trim().length < 3) errores.nombre = 'Escribe tu nombre completo.';
-  if (!v.correoValido(correo)) errores.correo = 'Escribe un correo válido.';
+  if (!v.nombreValido(nombre)) errores.nombre = 'Escribe tu nombre y apellido, solo con letras (5 a 80 caracteres).';
+  if (!v.correoValido(correo) || String(correo).length > 100) errores.correo = 'Escribe un correo válido.';
   else if (await db.prepare('SELECT id FROM usuarios WHERE lower(correo) = lower(?)').get(correo.trim()))
     errores.correo = 'Ya existe una cuenta con ese correo.';
   if (!v.claveSegura(clave)) errores.clave = 'Usa al menos 8 caracteres, mayúscula, minúscula y número.';
@@ -112,8 +112,8 @@ router.put('/perfil', requiereSesion, async (req, res) => {
   const actual = await perfilDe(req.session.usuario.id);
   const b = req.body;
   const errores = {};
-  const nombre = b.nombre !== undefined ? String(b.nombre).trim() : actual.nombre;
-  if (nombre.length < 3) errores.nombre = 'Escribe un nombre completo.';
+  const nombre = b.nombre !== undefined ? String(b.nombre).trim().replace(/\s+/g, ' ') : actual.nombre;
+  if (b.nombre !== undefined && !v.nombreValido(nombre)) errores.nombre = 'Escribe tu nombre y apellido, solo con letras.';
   const correo = b.correo !== undefined ? String(b.correo).trim().toLowerCase() : actual.correo;
   if (!v.correoValido(correo) ||
       await db.prepare('SELECT id FROM usuarios WHERE lower(correo) = ? AND id <> ?').get(correo, actual.id))
@@ -128,6 +128,13 @@ router.put('/perfil', requiereSesion, async (req, res) => {
   if (whatsapp && !telefono) errores.telefono = 'Configura un número válido para habilitar WhatsApp.';
   if (actual.rol === 'propietario' && b.documento !== undefined && !v.documentoValido(b.documento))
     errores.documento = v.mensajeDocumento();
+  // Datos de perfil: longitud y sin etiquetas HTML
+  for (const [campo, max, texto] of [['programa', 80, 'El programa'], ['nivel', 30, 'El semestre o nivel'], ['ciudad', 60, 'La ciudad'],
+                                     ['zona', 60, 'La zona'], ['bio', 500, 'La presentación'], ['institucion', 80, 'La institución']]) {
+    if (b[campo] !== undefined && b[campo] !== '' && b[campo] !== null && !v.textoValido(b[campo], 2, max))
+      errores[campo] = `${texto} debe tener entre 2 y ${max} caracteres, sin etiquetas.`;
+  }
+  if (b.relacion !== undefined && b.relacion && !v.RELACIONES.includes(b.relacion)) errores.relacion = 'Selecciona una relación de la lista.';
   if (b.foto && (!/^data:image\/(jpeg|png|webp);base64,/.test(b.foto) || b.foto.length > 400000))
     errores.foto = 'La foto debe ser una imagen JPG, PNG o WebP comprimida.';
   if (Object.keys(errores).length) return res.status(400).json({ error: Object.values(errores)[0], campos: errores });

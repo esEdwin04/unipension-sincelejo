@@ -22,6 +22,13 @@ router.post('/', requiereRol('estudiante'), async (req, res) => {
   const { habitacion_id, fecha_ingreso, meses } = req.body;
   if (!habitacion_id || !fecha_ingreso || !meses)
     return res.status(400).json({ error: 'Habitación, fecha de ingreso y duración son obligatorios' });
+  if (!Number.isInteger(+meses) || +meses < 1 || +meses > 12)
+    return res.status(400).json({ error: 'La duración debe ser un número entero de 1 a 12 meses.', campos: { meses: 'Entre 1 y 12 meses.' } });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(fecha_ingreso)) || Number.isNaN(Date.parse(fecha_ingreso)))
+    return res.status(400).json({ error: 'Escribe una fecha de ingreso válida.', campos: { fecha_ingreso: 'Fecha no válida.' } });
+  const limite = new Date(Date.now() + 365 * 864e5).toISOString().slice(0, 10);
+  if (fecha_ingreso > limite)
+    return res.status(400).json({ error: 'La fecha de ingreso no puede ser posterior a un año.', campos: { fecha_ingreso: 'Máximo un año desde hoy.' } });
   // Esc. 2: fecha anterior a hoy (fecha de Colombia, no UTC)
   if (fecha_ingreso < db.hoyColombia())
     return res.status(400).json({ error: 'La fecha de ingreso no puede ser anterior al día actual' });
