@@ -1,8 +1,9 @@
-// =============================================================
+// -------------------------------------------------------------------------------------
+// Responsable: Edwin Diaz
 // Moderación de publicaciones (HU-03) — prototipo inicial:
 // filtros por estado, Ver detalle, Aprobar, Rechazar, Ocultar / Revisar y restaurar,
 // Resolver reportes, Plan Destacado (activación manual) e historial de decisiones.
-// =============================================================
+// --------------------------------------------------------------------------------------
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { API, fecha } from '../../api.js';

@@ -1,3 +1,4 @@
+// Responsable: Edwin Diaz
 // Resumen del administrador (prototipo): hero, contadores que llevan a cada vista y planes
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';

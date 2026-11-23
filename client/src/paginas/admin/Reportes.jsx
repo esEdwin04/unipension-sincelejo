@@ -1,3 +1,4 @@
+// Responsable: Edwin Diaz
 // Reportes de información (prototipo): pensiones con reportes activos de estudiantes
 // y reportes ya resueltos. Un reporte activo por estudiante y pensión; 3 estudiantes → ocultamiento automático.
 import { useEffect, useState } from 'react';

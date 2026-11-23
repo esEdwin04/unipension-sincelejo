@@ -1,8 +1,9 @@
-// =============================================================
+// --------------------------------------------------------------------------------
+// Responsable: Edwin Diaz
 // Auditoría (HU-12, HU-03, HU-10): funciones del panel administrativo existente
 // que no están en el prototipo y se conservan: indicadores, trazabilidad con
 // exportación CSV, ocupación por barrio, moderación de reseñas y bitácora.
-// =============================================================
+// ---------------------------------------------------------------------------------
 import { useEffect, useState } from 'react';
 import { API, cop, estrellas, fecha } from '../../api.js';
 import { useSesion } from '../../App.jsx';
