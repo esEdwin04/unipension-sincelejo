@@ -1,4 +1,4 @@
-// =============================================================
+// ------------------------------------------------------------------------------
 // UniPensión Sincelejo — Capa de persistencia (libSQL / Turso)
 // Responsable: Administrador de Base de Datos
 //
@@ -11,23 +11,23 @@
 //   await db.prepare(sql).get(...) · .all(...) · .run(...)
 //   await db.transaction(async (tx) => { await tx.prepare(...).run(...) })
 // Crea el esquema y los datos semilla la primera vez (db.listo).
-// =============================================================
+//-----------------------------------------------------------------------------
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
 const URL_REMOTA = process.env.TURSO_DATABASE_URL;
-// En la nube se usa el cliente web (HTTP, sin binarios nativos); en local, el cliente con soporte de archivos
+// // En la nube se usa el cliente web (vía HTTP, sin binarios nativos); en local, el cliente que soporta archivos
 const { createClient } = URL_REMOTA ? require('@libsql/client/web') : require('@libsql/client');
 const cliente = createClient(URL_REMOTA
   ? { url: URL_REMOTA, authToken: process.env.TURSO_AUTH_TOKEN }
   : { url: 'file:' + (process.env.DB_PATH || path.join(__dirname, 'unipension.db')) });
 
-// Hora de Colombia (UTC-5, sin horario de verano). Los servidores en la nube trabajan en UTC,
-// por eso no se usa 'localtime'. Se usa en el SQL como ${AHORA} o datetime('now','-5 hours','+30 minutes').
+// Hora de Colombia (UTC-5, no tiene horario de verano). En la nube los servidores corren en UTC,
+// así que 'localtime' no sirve. En el SQL se usa ${AHORA} o datetime('now','-5 hours','+30 minutes').
 const AHORA = `datetime('now','-5 hours')`;
 const hoyColombia = () => new Date(Date.now() - 5 * 3600e3).toISOString().slice(0, 10);
 
-// libSQL no acepta undefined ni booleanos como parámetros
+// libSQL rechaza undefined y booleanos como parámetros de consulta
 const parametro = (v) => (v === undefined ? null : typeof v === 'boolean' ? (v ? 1 : 0) : v);
 
 function envolver(ejecutor) {
@@ -48,8 +48,8 @@ function envolver(ejecutor) {
 }
 
 const db = envolver(cliente);
-
-// Transacción de escritura: si la función lanza un error, se revierte todo
+todo
+// Ejecuta la función dentro de una transacción de escritura; si algo falla, se hace rollback
 db.transaction = async (fn) => {
   const tx = await cliente.transaction('write');
   try {
@@ -65,7 +65,7 @@ db.transaction = async (fn) => {
 };
 db.close = () => cliente.close();
 
-// Errores de restricción UNIQUE (el código varía entre el modo archivo y el remoto)
+// Detecta violaciones de UNIQUE; el código de error cambia según se use el modo archivo o el remoto
 db.esDuplicado = (err) => /UNIQUE/i.test(`${err?.code} ${err?.extendedCode} ${err?.message}`);
 db.AHORA = AHORA;
 db.hoyColombia = hoyColombia;
@@ -233,7 +233,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_reporte_pendiente_unico
 `;
 
 // ---------------------- MIGRACIONES ----------------------
-// Columnas agregadas en la adaptación al prototipo. Idempotente: no borra datos existentes.
+// Agrega las columnas nuevas de la adaptación al prototipo. Se puede ejecutar varias veces sin problema y no toca los datos existentes.
 const COLUMNAS = {
   usuarios: [
     ['foto', 'TEXT'], ['institucion', 'TEXT'], ['programa', 'TEXT'], ['nivel', 'TEXT'],
@@ -257,7 +257,7 @@ async function migrarColumnas() {
 }
 
 // ---------------------- FOTOGRAFÍAS DE LAS PENSIONES DE DEMOSTRACIÓN ----------------------
-// Fotos de Unsplash (licencia libre) en client/public/img/pensiones/. Origen en docs/CREDITOS_IMAGENES.md
+// Imágenes de Unsplash guardadas en client/public/img/pensiones/. Créditos y enlaces en docs/CREDITOS_IMAGENES.md
 const foto = (n) => `/img/pensiones/habitacion-${String(n).padStart(2, '0')}.webp`;
 const FOTOS_DEMO = {
   'Pensión Doña Carmen': [1, 2, 22],       'Residencia El Edén': [3, 12, 21],
