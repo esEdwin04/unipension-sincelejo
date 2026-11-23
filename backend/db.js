@@ -48,7 +48,6 @@ function envolver(ejecutor) {
 }
 
 const db = envolver(cliente);
-todo
 // Ejecuta la función dentro de una transacción de escritura; si algo falla, se hace rollback
 db.transaction = async (fn) => {
   const tx = await cliente.transaction('write');
