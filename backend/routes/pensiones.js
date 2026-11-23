@@ -9,6 +9,7 @@ const db = require('../db');
 const { requiereRol } = require('../middleware/auth');
 const P = require('../utils/pensiones');
 const { normalizarCelular } = require('../utils/validacion');
+const { BARRIOS } = require('../utils/barrios');
 const { conVencimientosAlDia } = require('../utils/vencimientos');
 const router = express.Router();
 const { AHORA } = db;
@@ -111,6 +112,16 @@ router.get('/mejor-valoradas', async (req, res) => {
     ORDER BY calificacion DESC, total_resenas DESC, p.nombre
     LIMIT ?`).all(limite);
   res.json(lista.map((p) => ({ ...p, destacado: !!p.destacado })));
+});
+
+// GET /api/pensiones/barrios-sincelejo → lista de barrios reales para los menús desplegables,
+// con la cantidad de pensiones visibles en cada uno (los que tienen oferta aparecen primero en el catálogo)
+router.get('/barrios-sincelejo', async (_req, res) => {
+  const conOferta = await db.prepare(`SELECT p.barrio, COUNT(*) AS n FROM pensiones p WHERE p.estado = 'Verificada'
+    AND EXISTS (SELECT 1 FROM habitaciones h WHERE h.pension_id = p.id AND h.estado = 'Libre') GROUP BY p.barrio`).all();
+  const conteo = Object.fromEntries(conOferta.map((f) => [f.barrio, f.n]));
+  const nombres = [...new Set([...BARRIOS, ...Object.keys(conteo)])].sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+  res.json(nombres.map((barrio) => ({ barrio, pensiones: conteo[barrio] || 0, oficial: BARRIOS.includes(barrio) })));
 });
 
 // GET /api/pensiones/barrios  → opciones del filtro
@@ -373,7 +384,7 @@ router.put('/:id', requiereRol('propietario'), manejar(async (req, res) => {
     ...Object.fromEntries(Object.entries(req.body).filter(([, v]) => v !== null && v !== undefined)),
   };
   b.capacidad = Number(b.capacidad); b.cupos = Number(b.cupos);
-  const errores = P.validarPublicacion(b);
+  const errores = P.validarPublicacion(b, p);
   if (Object.keys(errores).length) return res.status(400).json({ error: 'Revisa los campos indicados', campos: errores });
 
   // Criterio HU-02 esc. 4: bloqueo de campos críticos con reservas vigentes

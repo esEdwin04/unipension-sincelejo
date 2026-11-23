@@ -13,6 +13,9 @@ import Icono from '../../componentes/Icono.jsx';
 import { Mapa } from '../../componentes/TarjetaPension.jsx';
 import { Aviso, Campo, Cargando, TituloPagina } from '../../componentes/ui.jsx';
 import { comprimirFoto, miniatura, FOTOS_REFERENCIA } from '../../imagenes.js';
+import { direccionValida, enSincelejo, LIMITES, MENSAJES, RE_BARRIO_LIBRE, soloDigitos, textoValido } from '../../validacion.js';
+
+const OTRO = '__otro__'; // opción «Otro barrio» del menú
 
 const SINCELEJO = { lat: 9.3047, lng: -75.3978 };
 const NUEVA = { nombre: '', descripcion: '', direccion: '', barrio: '', lat: SINCELEJO.lat, lng: SINCELEJO.lng, instituciones: [],
@@ -20,21 +23,28 @@ const NUEVA = { nombre: '', descripcion: '', direccion: '', barrio: '', lat: SIN
   costos_adicionales: '', fotos: [] };
 const CAMPOS_PASO = { 1: ['nombre', 'descripcion', 'direccion', 'barrio', 'lat'], 2: ['tarifa_mensual', 'tipo_habitacion', 'capacidad', 'cupos', 'reglas'], 3: ['fotos'] };
 
-function validar(f, paso, ubicacionOk) {
+// Mismas reglas del servidor; `original` evita exigir el formato nuevo a la dirección o ubicación sin cambios
+function validar(f, paso, ubicacionOk, original) {
   const e = {};
   if (paso === 1) {
-    if (!f.nombre.trim()) e.nombre = 'Escribe el título de la pensión.';
-    if (!f.descripcion.trim()) e.descripcion = 'Describe las habitaciones y condiciones.';
-    if (!f.direccion.trim()) e.direccion = 'Escribe la dirección o una referencia general.';
-    if (!f.barrio.trim()) e.barrio = 'Escribe el barrio.';
+    if (!textoValido(f.nombre, 5, 80)) e.nombre = 'El título debe tener entre 5 y 80 caracteres.';
+    if (!textoValido(f.descripcion, 20, 1500)) e.descripcion = 'Describe las habitaciones y condiciones (20 a 1500 caracteres).';
+    if ((!original || f.direccion !== original.direccion) && !direccionValida(f.direccion)) e.direccion = MENSAJES.direccion;
+    if (!f.barrio.trim()) e.barrio = 'Selecciona el barrio.';
+    else if ((!original || f.barrio !== original.barrio) && !RE_BARRIO_LIBRE.test(f.barrio.trim())) e.barrio = 'Escribe un barrio válido (3 a 40 letras).';
     if (!Number.isFinite(+f.lat) || !Number.isFinite(+f.lng) || f.lat === '' || f.lng === '') e.lat = 'Introduce latitud y longitud válidas.';
+    else if ((!original || +f.lat !== +original.lat || +f.lng !== +original.lng) && !enSincelejo(+f.lat, +f.lng)) e.lat = 'La ubicación debe estar dentro de Sincelejo.';
     else if (!ubicacionOk) e.lat = 'Confirma el punto de la pensión en el mapa.';
   }
   if (paso === 2) {
-    if (!(+f.tarifa_mensual > 0)) e.tarifa_mensual = 'El precio debe ser mayor que cero.';
-    if (!Number.isInteger(+f.capacidad) || +f.capacidad < 1) e.capacidad = 'La capacidad debe ser un entero mayor que cero.';
+    const tarifa = +f.tarifa_mensual;
+    if (!Number.isInteger(tarifa) || tarifa < LIMITES.tarifaMin || tarifa > LIMITES.tarifaMax)
+      e.tarifa_mensual = `Entre ${cop(LIMITES.tarifaMin)} y ${cop(LIMITES.tarifaMax)} al mes.`;
+    if (!Number.isInteger(+f.deposito || 0) || +f.deposito < 0 || +f.deposito > tarifa * 2) e.deposito = 'Entre 0 y dos meses de arriendo.';
+    if (!Number.isInteger(+f.capacidad) || +f.capacidad < 1 || +f.capacidad > LIMITES.capacidadMax) e.capacidad = `Un número entero entre 1 y ${LIMITES.capacidadMax}.`;
     if (!Number.isInteger(+f.cupos) || +f.cupos < 0 || +f.cupos > +f.capacidad) e.cupos = 'Los cupos deben ser enteros entre cero y la capacidad total.';
-    if (!f.reglas.trim()) e.reglas = 'Indica las reglas de convivencia.';
+    if (!textoValido(f.reglas, 10, 800)) e.reglas = 'Indica las reglas de convivencia (10 a 800 caracteres).';
+    if (f.costos_adicionales && !textoValido(f.costos_adicionales, 0, 200)) e.costos_adicionales = 'Máximo 200 caracteres.';
   }
   if (paso === 3 && (f.fotos.length < 1 || f.fotos.length > 5)) e.fotos = 'Añade entre una y cinco fotografías.';
   return e;
@@ -51,6 +61,12 @@ export default function EditorPension() {
   const [errores, setErrores] = useState({});
   const [ubicacionOk, setUbicacionOk] = useState(false);
   const [unis, setUnis] = useState([]);
+  const [barrios, setBarrios] = useState([]);       // barrios reales de Sincelejo
+  const [barrioOtro, setBarrioOtro] = useState(false);
+  // Pensión o borrador con un barrio fuera de la lista: se muestra como «Otro barrio» con su nombre
+  useEffect(() => {
+    if (barrios.length && f?.barrio && !barrios.includes(f.barrio)) setBarrioOtro(true);
+  }, [barrios, f?.barrio]); // eslint-disable-line react-hooks/exhaustive-deps
   const [servicios, setServicios] = useState([]);
   const [ocupado, setOcupado] = useState(false);
   const [borrador, setBorrador] = useState(null); // borrador previo encontrado
@@ -60,6 +76,7 @@ export default function EditorPension() {
 
   useEffect(() => {
     API.get('/pensiones/universidades').then(setUnis).catch(() => {});
+    API.get('/pensiones/barrios-sincelejo').then((l) => setBarrios(l.filter((b) => b.oficial).map((b) => b.barrio))).catch(() => {});
     API.get('/pensiones/servicios').then(setServicios).catch(() => {});
     if (editando) {
       API.get(`/pensiones/${id}`).then((p) => {
@@ -118,14 +135,14 @@ export default function EditorPension() {
   }
 
   function continuar() {
-    const e = validar(f, paso, ubicacionOk);
+    const e = validar(f, paso, ubicacionOk, original);
     setErrores(e);
     if (!Object.keys(e).length) { setPaso(paso + 1); window.scrollTo({ top: 0 }); }
   }
 
   async function enviar() {
     for (const p of [1, 2, 3]) {
-      const e = validar(f, p, ubicacionOk);
+      const e = validar(f, p, ubicacionOk, original);
       if (Object.keys(e).length) { setErrores(e); setPaso(p); setErrorGeneral('Revisa los campos indicados antes de enviar.'); return; }
     }
     setOcupado(true); setErrorGeneral('');
@@ -174,15 +191,28 @@ export default function EditorPension() {
         {paso === 1 && (
           <>
             <h2>Tu pensión y su ubicación</h2>
-            <Campo etiqueta="Título *" error={errores.nombre}><input value={f.nombre} maxLength={100} onChange={(e) => set('nombre', e.target.value)} /></Campo>
+            <Campo etiqueta="Título *" error={errores.nombre}><input value={f.nombre} maxLength={80} onChange={(e) => set('nombre', e.target.value)} placeholder="Ej.: Pensión La Ceiba" /></Campo>
             <Campo etiqueta="Descripción *" error={errores.descripcion}>
-              <textarea value={f.descripcion} maxLength={2500} onChange={(e) => set('descripcion', e.target.value)} placeholder="Habitaciones, ambiente, cercanía a universidades…" />
+              <textarea value={f.descripcion} maxLength={1500} onChange={(e) => set('descripcion', e.target.value)} placeholder="Habitaciones, ambiente, cercanía a universidades…" />
             </Campo>
             <div className="dos">
               <Campo etiqueta="Dirección *" error={errores.direccion}>
-                <input value={f.direccion} onChange={(e) => set('direccion', e.target.value)} placeholder="Cra 00 # 00-00" />
+                <input value={f.direccion} maxLength={80} onChange={(e) => set('direccion', e.target.value)} placeholder="Ej.: Cra 21 # 25-14"
+                       autoComplete="street-address" />
               </Campo>
-              <Campo etiqueta="Barrio *" error={errores.barrio}><input value={f.barrio} onChange={(e) => set('barrio', e.target.value)} /></Campo>
+              <Campo etiqueta="Barrio *" error={errores.barrio}>
+                <select value={barrioOtro ? OTRO : f.barrio}
+                        onChange={(e) => { const x = e.target.value; setBarrioOtro(x === OTRO); set('barrio', x === OTRO ? '' : x); }}>
+                  <option value="">Selecciona el barrio</option>
+                  {barrios.map((b) => <option key={b}>{b}</option>)}
+                  <option value={OTRO}>Otro barrio (escribirlo)</option>
+                </select>
+              </Campo>
+              {barrioOtro && (
+                <Campo etiqueta="Nombre del barrio *" error={errores.barrio}>
+                  <input value={f.barrio} maxLength={40} autoFocus onChange={(e) => set('barrio', e.target.value.replace(/[<>]/g, ''))} />
+                </Campo>
+              )}
               <Campo etiqueta="Latitud" error={errores.lat}>
                 <input type="number" step="any" value={f.lat} onChange={(e) => { set('lat', e.target.value); setUbicacionOk(false); }} />
               </Campo>
@@ -214,10 +244,11 @@ export default function EditorPension() {
             <h2>Cupos, precio y convivencia</h2>
             <div className="dos">
               <Campo etiqueta="Precio mensual COP *" error={errores.tarifa_mensual}>
-                <input type="number" min="1" step="10000" value={f.tarifa_mensual} onChange={(e) => set('tarifa_mensual', e.target.value)} />
+                <input type="number" inputMode="numeric" min={LIMITES.tarifaMin} max={LIMITES.tarifaMax} step="10000" value={f.tarifa_mensual}
+                       onChange={(e) => set('tarifa_mensual', soloDigitos(e.target.value, 7))} />
               </Campo>
-              <Campo etiqueta="Depósito COP">
-                <input type="number" min="0" step="10000" value={f.deposito} onChange={(e) => set('deposito', e.target.value)} />
+              <Campo etiqueta="Depósito COP" error={errores.deposito}>
+                <input type="number" inputMode="numeric" min="0" step="10000" value={f.deposito} onChange={(e) => set('deposito', soloDigitos(e.target.value, 7))} />
               </Campo>
               <Campo etiqueta="Tipo de habitación *" error={errores.tipo_habitacion}>
                 <select value={f.tipo_habitacion} onChange={(e) => set('tipo_habitacion', e.target.value)}>
@@ -227,10 +258,10 @@ export default function EditorPension() {
               </Campo>
               <span />
               <Campo etiqueta="Capacidad total (habitaciones) *" error={errores.capacidad}>
-                <input type="number" min="1" step="1" value={f.capacidad} onChange={(e) => set('capacidad', e.target.value)} />
+                <input type="number" inputMode="numeric" min="1" max={LIMITES.capacidadMax} step="1" value={f.capacidad} onChange={(e) => set('capacidad', soloDigitos(e.target.value, 2))} />
               </Campo>
               <Campo etiqueta="Cupos disponibles *" error={errores.cupos}>
-                <input type="number" min="0" max={f.capacidad} step="1" value={f.cupos} onChange={(e) => set('cupos', e.target.value)} />
+                <input type="number" inputMode="numeric" min="0" max={f.capacidad} step="1" value={f.cupos} onChange={(e) => set('cupos', soloDigitos(e.target.value, 2))} />
               </Campo>
             </div>
             <p className="pista">{+f.cupos === 0 ? 'Ocupada: no aparecerá en el catálogo aunque esté verificada.' : 'Disponible: aparecerá solamente después de ser verificada.'}</p>
@@ -242,8 +273,8 @@ export default function EditorPension() {
                 ))}
               </div>
             </fieldset>
-            <Campo etiqueta="Reglas de convivencia *" error={errores.reglas}><textarea value={f.reglas} onChange={(e) => set('reglas', e.target.value)} /></Campo>
-            <Campo etiqueta="Costos adicionales"><input value={f.costos_adicionales} onChange={(e) => set('costos_adicionales', e.target.value)} placeholder="Indica si existen o escribe Ninguno" /></Campo>
+            <Campo etiqueta="Reglas de convivencia *" error={errores.reglas}><textarea value={f.reglas} maxLength={800} onChange={(e) => set('reglas', e.target.value)} /></Campo>
+            <Campo etiqueta="Costos adicionales" error={errores.costos_adicionales}><input value={f.costos_adicionales} maxLength={200} onChange={(e) => set('costos_adicionales', e.target.value)} placeholder="Indica si existen o escribe Ninguno" /></Campo>
           </>
         )}
 

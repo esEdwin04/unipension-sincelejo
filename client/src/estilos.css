@@ -765,3 +765,49 @@ td small{color:var(--niebla)}
   .pp-lista li{grid-template-columns:60px 1fr auto;gap:10px}
   .pp-lista img{width:60px;height:48px}
 }
+
+/* ---------- Carrusel de fotos (deslizar con el dedo) ---------- */
+.carrusel{position:relative;width:100%;height:100%}
+.carrusel-pista{display:flex;width:100%;height:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+  overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;touch-action:pan-x pan-y}
+.carrusel-pista::-webkit-scrollbar{display:none}
+.carrusel-pista:focus-visible{outline-offset:-4px}
+.carrusel-diapositiva{flex:0 0 100%;height:100%;scroll-snap-align:center;scroll-snap-stop:always}
+.carrusel-diapositiva img{width:100%;height:100%;object-fit:cover;user-select:none;-webkit-user-drag:none}
+.carrusel-flecha{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(246,246,243,.82);color:#253628;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.8);
+  box-shadow:0 8px 20px -10px rgba(0,0,0,.45);transition:opacity .2s,transform .2s}
+.carrusel-flecha.anterior{left:14px}.carrusel-flecha.siguiente{right:14px}
+.carrusel-flecha:disabled{opacity:0;pointer-events:none}
+.carrusel-flecha:hover{transform:translateY(-50%) scale(1.06)}
+.carrusel-puntos{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:6px;padding:6px 9px;border-radius:999px;
+  background:rgba(37,54,40,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.carrusel-puntos span{width:7px;height:7px;border-radius:999px;background:rgba(255,255,255,.55);transition:width .3s,background .3s}
+.carrusel-puntos span.activo{width:20px;background:#fff}
+/* En pantallas táctiles se desliza con el dedo: las flechas se ocultan */
+@media (hover:none){.carrusel-flecha{display:none}}
+.galeria-principal .contador{z-index:2}
+/* Vista ampliada */
+.visor{padding:0}
+.carrusel-visor{height:100%}
+.carrusel-visor .carrusel-diapositiva{display:grid;place-items:center;padding:56px 12px}
+.carrusel-visor .carrusel-diapositiva img{width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;border-radius:14px}
+.visor-cerrar{position:absolute;z-index:3;top:14px;right:14px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#253628}
+.visor-contador{position:absolute;z-index:3;top:22px;left:50%;transform:translateX(-50%);color:#fff;font-weight:600;font-size:.9rem}
+.visor .carrusel-puntos{bottom:22px}
+.visor,div.visor{display:block;cursor:default}
+
+/* ---------- Mi perfil: dos columnas ---------- */
+.perfil-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:start}
+.perfil-tarjeta{text-align:center;margin:0;padding:30px 24px 24px;display:grid;justify-items:center;gap:4px}
+.perfil-tarjeta h2{margin-top:12px}
+.perfil-datos{width:100%;display:grid;gap:0;margin:18px 0 6px;text-align:left}
+.perfil-datos>div{display:grid;grid-template-columns:38px 1fr;grid-template-rows:auto auto;column-gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--linea)}
+.perfil-datos .ic{grid-row:span 2;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--papel-2);color:var(--tinta-2)}
+.perfil-datos dt{font-size:.76rem;color:var(--niebla);font-weight:600}
+.perfil-datos dd{font-weight:600;color:var(--tinta);overflow-wrap:anywhere}
+.perfil-datos dd.vacio-dato{color:var(--niebla);font-weight:500;font-style:italic}
+.perfil-acciones h2{font-size:1.5rem;margin:6px 0 14px}
+.perfil-acciones .item-menu{margin-bottom:10px}
+.perfil-acciones .salir{margin-top:6px}
+@media (max-width:899px){.perfil-layout{grid-template-columns:1fr}}

@@ -6,7 +6,9 @@
 // Responsables: Desarrollador Backend + Administrador DB
 // =============================================================
 const db = require('../db');
-const { SERVICIOS, normalizar } = require('./validacion');
+const v = require('./validacion');
+const { SERVICIOS, normalizar } = v;
+const { barrioDeLista } = require('./barrios');
 
 const ESTADOS_RESERVA_VIGENTE = `('Pendiente de pago','Pagada','Confirmada')`;
 
@@ -68,23 +70,39 @@ async function sincronizarHabitaciones(pensionId, { capacidad, tipo, tarifa }, c
   }
 }
 
-// Validación de la publicación (pasos 1, 2 y 3 del editor del prototipo)
-function validarPublicacion(b) {
+// Validación de la publicación (pasos 1, 2 y 3 del editor). `anterior` (al editar) evita bloquear
+// por reglas nuevas los campos que el propietario no cambió (dirección, barrio y ubicación).
+function validarPublicacion(b, anterior = null) {
   const e = {};
-  if (!String(b.nombre || '').trim()) e.nombre = 'Escribe el título de la pensión.';
-  if (!String(b.descripcion || '').trim()) e.descripcion = 'Describe las habitaciones y condiciones.';
-  if (!String(b.direccion || '').trim()) e.direccion = 'Escribe una dirección o referencia general.';
-  if (!String(b.barrio || '').trim()) e.barrio = 'Escribe el barrio.';
+  const cambio = (campo) => !anterior || String(b[campo] ?? '').trim() !== String(anterior[campo] ?? '').trim();
+  if (!v.textoValido(b.nombre, 5, 80)) e.nombre = 'El título debe tener entre 5 y 80 caracteres, sin etiquetas.';
+  if (!v.textoValido(b.descripcion, 20, 1500)) e.descripcion = 'Describe las habitaciones y condiciones (20 a 1500 caracteres).';
+  if (cambio('direccion') && !v.direccionValida(b.direccion))
+    e.direccion = 'Escribe la dirección con el formato de Sincelejo, por ejemplo «Cra 21 # 25-14» o «Mz 3 Lt 5».';
+  if (cambio('barrio')) {
+    const oficial = barrioDeLista(b.barrio);
+    if (oficial) b.barrio = oficial;  // corrige mayúsculas y tildes
+    else if (!v.RE_BARRIO_LIBRE.test(String(b.barrio || '').trim())) e.barrio = 'Selecciona el barrio de la lista o escribe uno válido (3 a 40 letras).';
+  }
   const lat = Number(b.lat), lng = Number(b.lng);
-  if (b.lat === '' || b.lat == null || !Number.isFinite(lat) || Math.abs(lat) > 90 ||
-      b.lng === '' || b.lng == null || !Number.isFinite(lng) || Math.abs(lng) > 180)
+  const ubicacionCambio = !anterior || lat !== anterior.lat || lng !== anterior.lng;
+  if (b.lat === '' || b.lat == null || !Number.isFinite(lat) || b.lng === '' || b.lng == null || !Number.isFinite(lng))
     e.lat = 'Introduce latitud y longitud válidas.';
-  if (!(Number(b.tarifa_mensual) > 0)) e.tarifa_mensual = 'El precio debe ser mayor que cero.';
+  else if (ubicacionCambio && !v.enSincelejo(lat, lng)) e.lat = 'La ubicación debe estar dentro de Sincelejo. Marca el punto en el mapa.';
+  const tarifa = Number(b.tarifa_mensual);
+  if (!Number.isInteger(tarifa) || tarifa < v.LIMITES.tarifaMin || tarifa > v.LIMITES.tarifaMax)
+    e.tarifa_mensual = `El precio mensual debe ser un valor entero entre $${v.LIMITES.tarifaMin.toLocaleString('es-CO')} y $${v.LIMITES.tarifaMax.toLocaleString('es-CO')}.`;
+  const deposito = Number(b.deposito || 0);
+  if (!Number.isInteger(deposito) || deposito < 0 || (Number.isFinite(tarifa) && deposito > tarifa * 2))
+    e.deposito = 'El depósito debe ser un valor entero entre 0 y dos meses de arriendo.';
   if (!['Individual', 'Compartida', 'Mixta'].includes(b.tipo_habitacion)) e.tipo_habitacion = 'Selecciona el tipo de habitación.';
   const cap = Number(b.capacidad), cupos = Number(b.cupos);
-  if (!Number.isInteger(cap) || cap < 1 || cap > 60) e.capacidad = 'La capacidad debe ser un entero mayor que cero.';
+  if (!Number.isInteger(cap) || cap < 1 || cap > v.LIMITES.capacidadMax) e.capacidad = `La capacidad debe ser un entero entre 1 y ${v.LIMITES.capacidadMax}.`;
   if (!Number.isInteger(cupos) || cupos < 0 || cupos > cap) e.cupos = 'Los cupos deben ser enteros entre cero y la capacidad total.';
-  if (!String(b.reglas || '').trim()) e.reglas = 'Indica las reglas de convivencia.';
+  if (!v.textoValido(b.reglas, 10, 800)) e.reglas = 'Indica las reglas de convivencia (10 a 800 caracteres).';
+  if (b.costos_adicionales && !v.textoValido(b.costos_adicionales, 0, 200)) e.costos_adicionales = 'Máximo 200 caracteres, sin etiquetas.';
+  const servicios = Array.isArray(b.servicios) ? b.servicios : String(b.servicios || '').split(',').map((x) => x.trim()).filter(Boolean);
+  if (servicios.some((x) => !SERVICIOS.includes(x))) e.servicios = 'Hay servicios que no están en la lista.';
   const fotos = Array.isArray(b.fotos) ? b.fotos : [];
   if (fotos.length < 1 || fotos.length > 5) e.fotos = 'Añade entre una y cinco fotografías.';
   else if (fotos.some((f) => typeof f !== 'string' || f.length > 700000 ||

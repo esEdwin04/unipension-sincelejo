@@ -39,9 +39,9 @@ export function documentoValido(d, demo) {
   return /^\d{6,10}$/.test(x) || /^(?=.*\d)[A-Z0-9]{5,15}$/.test(x);
 }
 export const textoDocumento = (demo) => (demo
-  ? { etiqueta: 'Documento ficticio privado *', ayuda: 'DEMO-001 · no ingreses un documento real',
+  ? { etiqueta: 'Número de documento *', ayuda: 'DEMO-001 · en modo demostración no uses un documento real',
       error: 'No uses un documento real. Escribe un identificador ficticio DEMO-.' }
-  : { etiqueta: 'Cédula o documento de identidad (privado) *', ayuda: 'Número de cédula, CE o pasaporte',
+  : { etiqueta: 'Número de documento *', ayuda: 'Cédula, CE o pasaporte · no se publica',
       error: 'Escribe tu número de cédula (6 a 10 dígitos) o de cédula de extranjería / pasaporte.' });
 
 export const cop = (v) => '$' + Number(v || 0).toLocaleString('es-CO');

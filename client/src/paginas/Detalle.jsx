@@ -10,6 +10,7 @@ import { useSesion } from '../App.jsx';
 import Icono, { IconoServicio } from '../componentes/Icono.jsx';
 import { Mapa } from '../componentes/TarjetaPension.jsx';
 import BotonFavorito from '../componentes/BotonFavorito.jsx';
+import Carrusel from '../componentes/Carrusel.jsx';
 import { Aviso, Avatar, Campo, Cargando, Dialogo, Chip } from '../componentes/ui.jsx';
 
 export default function Detalle() {
@@ -144,7 +145,8 @@ export default function Detalle() {
       <main className="contenido">
         <section className="galeria" aria-label="Galería de fotografías">
           <div className="galeria-principal">
-            <img src={p.fotos[foto] || p.fotos[0] || '/img/placeholder1.svg'} alt={`Fotografía ${foto + 1} de ${p.nombre}`} onClick={() => setVisor(true)} />
+            <Carrusel fotos={p.fotos.length ? p.fotos : ['/img/placeholder1.svg']} indice={foto} onCambio={setFoto}
+                      textoAlt={(i) => `Fotografía ${i + 1} de ${p.nombre}`} onAbrir={() => setVisor(true)} />
             <span className="contador"><Icono nombre="foto" tam={16} />{foto + 1} / {p.fotos.length}</span>
           </div>
           {p.fotos.length > 1 && (
@@ -157,7 +159,7 @@ export default function Detalle() {
             </div>
           )}
         </section>
-        <p className="fine">Fotografías aportadas por el propietario · toca la imagen para ampliarla</p>
+        <p className="fine">Fotografías aportadas por el propietario · desliza para ver más y toca para ampliar</p>
 
         <div className="det-titulo">
           <p className="eyebrow">Pensión estudiantil</p>
@@ -299,7 +301,7 @@ export default function Detalle() {
         </div>
       )}
 
-      {visor && <div className="visor" onClick={() => setVisor(false)} role="dialog" aria-label="Vista ampliada"><img src={p.fotos[foto]} alt={`Fotografía ampliada de ${p.nombre}`} /></div>}
+      {visor && <VisorFotos fotos={p.fotos} indice={foto} onCambio={setFoto} nombre={p.nombre} cerrar={() => setVisor(false)} />}
 
       {dialogo === 'contacto' && contacto && (
         <Dialogo titulo={`Escribir a ${p.contacto?.nombre?.split(' ')[0] || 'el arrendador'} por WhatsApp`} cerrar={() => setDialogo(null)}>
@@ -357,6 +359,24 @@ export default function Detalle() {
           )}
         </Dialogo>
       )}
+    </div>
+  );
+}
+
+// Vista ampliada a pantalla completa: también se desliza con el dedo; Esc o la X la cierran
+function VisorFotos({ fotos, indice, onCambio, nombre, cerrar }) {
+  useEffect(() => {
+    const tecla = (e) => { if (e.key === 'Escape') cerrar(); };
+    window.addEventListener('keydown', tecla);
+    const desplazamiento = document.body.style.overflow;
+    document.body.style.overflow = 'hidden'; // la página de fondo no se mueve mientras se ven las fotos
+    return () => { window.removeEventListener('keydown', tecla); document.body.style.overflow = desplazamiento; };
+  }, [cerrar]);
+  return (
+    <div className="visor" role="dialog" aria-modal="true" aria-label={`Fotografías de ${nombre}`}>
+      <button type="button" className="visor-cerrar" onClick={cerrar} aria-label="Cerrar vista ampliada" autoFocus><Icono nombre="cerrar" /></button>
+      <Carrusel fotos={fotos} indice={indice} onCambio={onCambio} clase="carrusel-visor" textoAlt={(i) => `Fotografía ${i + 1} ampliada de ${nombre}`} />
+      <span className="visor-contador">{indice + 1} / {fotos.length}</span>
     </div>
   );
 }
