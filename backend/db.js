@@ -72,7 +72,7 @@ db.hoyColombia = hoyColombia;
 const VERSION_POLITICA = '2026-01-prototipo';
 db.VERSION_POLITICA = VERSION_POLITICA;
 // Cambiar este valor obliga a revisar esquema, migraciones y semillas en el siguiente arranque
-const VERSION_ESQUEMA = '0.4.0-favoritos';
+const VERSION_ESQUEMA = '0.5.0-migraciones-db1';
 
 // ---------------------- ESQUEMA ----------------------
 const ESQUEMA = `
@@ -219,6 +219,16 @@ CREATE TABLE IF NOT EXISTS favoritos (                  -- pensiones guardadas p
 );
 
 -- Índices para el catálogo con filtros (RNF-03)
+-- DB1: enlaces para recuperar la contraseña (actividad B2). Solo se guarda el hash del token.
+CREATE TABLE IF NOT EXISTS tokens_recuperacion (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  usuario_id  INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  token_hash  TEXT NOT NULL UNIQUE,
+  vence_en    TEXT NOT NULL,                     -- 30 minutos después de creado
+  usado_en    TEXT,                              -- cada enlace sirve una sola vez
+  creado_en   TEXT NOT NULL DEFAULT (${AHORA})
+);
+
 CREATE INDEX IF NOT EXISTS idx_pensiones_estado  ON pensiones(estado);
 CREATE INDEX IF NOT EXISTS idx_pensiones_barrio  ON pensiones(barrio);
 CREATE INDEX IF NOT EXISTS idx_hab_pension       ON habitaciones(pension_id);
@@ -245,6 +255,10 @@ const COLUMNAS = {
     ['destacado', 'INTEGER NOT NULL DEFAULT 0'], ['motivo_rechazo', 'TEXT'], ['actualizado_en', 'TEXT'], ['miniatura', 'TEXT'],
   ],
   reportes_pensiones: [['decision', 'TEXT'], ['resuelto_en', 'TEXT']],
+  // DB1: fin del periodo reservado, para consultar disponibilidad por fecha (B6)
+  reservas: [['fecha_salida', 'TEXT']],
+  // DB1: anulación de pagos por el administrador (B4, HU-08 esc. 3)
+  pagos: [['anulado_en', 'TEXT'], ['motivo_anulacion', 'TEXT'], ['anulado_por', 'INTEGER REFERENCES usuarios(id)']],
 };
 async function migrarColumnas() {
   for (const [tabla, columnas] of Object.entries(COLUMNAS)) {
@@ -253,6 +267,23 @@ async function migrarColumnas() {
       if (!existentes.has(columna)) await db.exec(`ALTER TABLE ${tabla} ADD COLUMN ${columna} ${definicion}`);
   }
   await db.exec('CREATE INDEX IF NOT EXISTS idx_pensiones_destacado ON pensiones(destacado);');
+  await migrarFechaSalida();
+  await db.exec('CREATE INDEX IF NOT EXISTS idx_tokens_usuario ON tokens_recuperacion(usuario_id);');
+}
+
+// DB1: fecha_salida = fecha_ingreso + meses. Se completa en las reservas que ya existen y,
+// con disparadores, en las nuevas o editadas, sin cambiar las rutas que crean reservas.
+async function migrarFechaSalida() {
+  const calcular = (r) => `date(${r}.fecha_ingreso, '+' || ${r}.meses || ' months')`;
+  await db.exec(`
+    UPDATE reservas SET fecha_salida = ${calcular('reservas')} WHERE fecha_salida IS NULL;
+    CREATE TRIGGER IF NOT EXISTS trg_reservas_fecha_salida_ins AFTER INSERT ON reservas
+      WHEN NEW.fecha_salida IS NULL
+      BEGIN UPDATE reservas SET fecha_salida = ${calcular('NEW')} WHERE id = NEW.id; END;
+    CREATE TRIGGER IF NOT EXISTS trg_reservas_fecha_salida_upd AFTER UPDATE OF fecha_ingreso, meses ON reservas
+      BEGIN UPDATE reservas SET fecha_salida = ${calcular('NEW')} WHERE id = NEW.id; END;
+    CREATE INDEX IF NOT EXISTS idx_reservas_periodo ON reservas(habitacion_id, fecha_ingreso, fecha_salida);
+  `);
 }
 
 // ---------------------- FOTOGRAFÍAS DE LAS PENSIONES DE DEMOSTRACIÓN ----------------------
