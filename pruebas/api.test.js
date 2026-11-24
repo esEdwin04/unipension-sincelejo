@@ -2,7 +2,7 @@
 // Pruebas automáticas del API (Ingeniero QA) — ejecutar con: npm test
 // Usa una base de datos temporal, por lo que no altera backend/unipension.db
 // Cubre los flujos del prototipo inicial + las historias de usuario existentes.
-// ---------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const os = require('os');
