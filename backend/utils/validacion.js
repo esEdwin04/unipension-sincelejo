@@ -1,7 +1,7 @@
-// =============================================================
+// -------------------------------------------------------------------------
 // Reglas de validación compartidas por las rutas del API
 // (tomadas del prototipo inicial y de los criterios de aceptación)
-// =============================================================
+// -----------------------------------------------------------------------
 
 // Modo demostración (por defecto): cuentas de acceso rápido y documentos ficticios con prefijo DEMO-.
 // En producción con usuarios reales se desactiva con MODO_DEMO=false. Se lee en cada llamada.
