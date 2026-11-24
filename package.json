@@ -14,6 +14,7 @@
     "test": "node --test pruebas/api.test.js",
     "db:respaldo": "node backend/scripts/respaldo.js",
     "db:restaurar": "node backend/scripts/respaldo.js --restaurar",
+    "db:medir": "node backend/scripts/medir-catalogo.js",
     "db:iniciar": "node -e \"require('./backend/db').listo.then(() => process.exit(0), (e) => { console.error(e); process.exit(1); })\""
   },
   "keywords": [],
