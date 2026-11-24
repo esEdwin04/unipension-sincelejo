@@ -1,9 +1,9 @@
-// =============================================================
+// -----------------------------------------------------------------------
 // Módulo de autenticación y perfil (RF-01, RNF-05, RNF-07)
 // Pantallas del prototipo: Bienvenida, Crear cuenta (2 pasos), Iniciar sesión,
 // Recuperación, Mi perfil, Editar perfil, Cambiar contraseña, Privacidad.
 // Responsable: Desarrollador Backend
-// =============================================================
+// ---------------------------------------------------------------------
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
