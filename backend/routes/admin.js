@@ -1,7 +1,7 @@
-// =============================================================
+// ----------------------------------------------------------------------
 // Módulo del panel administrativo (HU-12 → RF-14)
 // Responsables: Desarrollador Backend + Administrador DB (consultas)
-// =============================================================
+// -------------------------------------------------------------------
 const express = require('express');
 const db = require('../db');
 const { requiereRol } = require('../middleware/auth');
