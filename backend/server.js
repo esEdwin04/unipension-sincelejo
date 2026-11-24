@@ -1,9 +1,9 @@
-// =============================================================
+// ------------------------------------------------------------------------------
 // UniPensión Sincelejo — Servidor principal (Express)
 // Arquitectura cliente-servidor en 3 capas (RNF-10):
 //   presentación (client/) · lógica de negocio (routes/) · persistencia (db.js)
 // Se ejecuta igual en local (npm start) y en Vercel (api/index.js exporta esta app).
-// =============================================================
+// -----------------------------------------------------------------------
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
