@@ -1,9 +1,9 @@
-// =============================================================
+// --------------------------------------------------------------------
 // Módulo de reservas y pagos (HU-06, HU-07, HU-08, HU-09, HU-11)
 // Responsable: Desarrollador Backend
 // La pasarela de pagos se SIMULA en el prototipo: en producción se
 // integra Wompi / Mercado Pago / PayU según la guía del proyecto.
-// =============================================================
+// ----------------------------------------------------------------
 const express = require('express');
 const db = require('../db');
 const { requiereRol, requiereSesion } = require('../middleware/auth');
