@@ -392,3 +392,24 @@ test('Validación de campos: dirección, barrio, ubicación, precio, nombre, res
   assert.equal((await est.post('/reservas', { habitacion_id: hab.id, fecha_ingreso: '2099-01-01', meses: 6 })).status, 400);
   assert.equal((await est.post('/resenas', { pension_id: p.id, estrellas: 9 })).status, 400);
 });
+
+// DB1: migraciones para recuperación de contraseña (B2), anulación de pagos (B4) y fecha de salida (B6)
+test('Migraciones DB1: tokens de recuperación, anulación de pagos y fecha de salida', async () => {
+  const db = require('../backend/db');
+  await db.listo;
+  const columnas = async (tabla) => (await db.prepare(`PRAGMA table_info(${tabla})`).all()).map((c) => c.name);
+  assert.ok((await columnas('tokens_recuperacion')).includes('token_hash'));
+  for (const c of ['anulado_en', 'motivo_anulacion', 'anulado_por']) assert.ok((await columnas('pagos')).includes(c));
+  // Las reservas sembradas ya tienen fecha de salida
+  assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM reservas WHERE fecha_salida IS NULL').get()).n, 0);
+  // Una reserva nueva la calcula sola y se recalcula si cambian los meses
+  const hab = await db.prepare(`SELECT id FROM habitaciones WHERE estado = 'Libre' LIMIT 1`).get();
+  const est = await db.prepare(`SELECT id FROM usuarios WHERE rol = 'estudiante' LIMIT 1`).get();
+  const { lastInsertRowid: id } = await db.prepare(`INSERT INTO reservas (habitacion_id, estudiante_id, fecha_ingreso, meses, valor_total)
+    VALUES (?, ?, '2027-01-31', 1, 1)`).run(hab.id, est.id);
+  const salida = async () => (await db.prepare('SELECT fecha_salida FROM reservas WHERE id = ?').get(id)).fecha_salida;
+  assert.equal(await salida(), '2027-03-03'); // SQLite suma el mes y normaliza el 31 de febrero
+  await db.prepare('UPDATE reservas SET meses = 6 WHERE id = ?').run(id);
+  assert.equal(await salida(), '2027-07-31');
+  await db.prepare('DELETE FROM reservas WHERE id = ?').run(id);
+});
